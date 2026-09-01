@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 
 import { AuthControls } from "@/components/AuthControls";
 import { Footer } from "@/components/Footer";
@@ -7,6 +8,12 @@ import { getDefaultRoute, getNavItems } from "@/lib/navigation";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 /**
  * The one persistent shell (CLAUDE.md §5): top nav above, content below,
@@ -41,7 +48,7 @@ export default async function RootLayout({
   const config = getTenantConfig();
 
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body
         className="flex min-h-full flex-col"
         style={
@@ -52,7 +59,7 @@ export default async function RootLayout({
       >
         <TopNav
           items={getNavItems(config)}
-          defaultRoute={getDefaultRoute(config)}
+          defaultRoute={getDefaultRoute()}
           clientName={config.displayName}
           clientLogoUrl={config.branding.clientLogoUrl || undefined}
           authControls={<AuthControls />}

@@ -1,29 +1,47 @@
 @import "tailwindcss";
 
 /*
- * NuIQ palette — drawn from the origami-peak mark (CLAUDE.md §8).
- * Flat, precise, geometric, restrained. Deep indigo/blue facet tones.
- * No gradients, no glow, no dashboard-template clichés.
+ * NuIQ design tokens — drawn from the origami-peak mark (CLAUDE.md §8).
+ *
+ * Flat, precise, geometric. Deep indigo/blue facet family, held to a narrow
+ * range so depth comes from value rather than hue. Gradients are used on the
+ * app chrome (header, footer, hero) to give the shell dimension; content
+ * surfaces stay flat so data is never competing with decoration.
  */
 @theme {
-  --color-peak-950: #0a1338;
-  --color-peak-900: #0f1e5a;
-  --color-peak-800: #16277a;
-  --color-peak-700: #1e3a8a;
-  --color-peak-600: #1d4ed8;
-  --color-peak-500: #2563eb;
-  --color-peak-300: #7ea6f5;
-  --color-peak-100: #dbe6fb;
-  --color-peak-50: #f2f6fd;
+  /* Facet tones, dark to light. */
+  --color-peak-950: #070d26;
+  --color-peak-900: #0b1436;
+  --color-peak-850: #101d4d;
+  --color-peak-800: #16276b;
+  --color-peak-700: #1d3a9e;
+  --color-peak-600: #2450d6;
+  --color-peak-500: #3b74f0;
+  --color-peak-400: #6699f6;
+  --color-peak-300: #93b8f9;
+  --color-peak-200: #c2d7fc;
+  --color-peak-100: #dfeafd;
+  --color-peak-50: #eff4fe;
 
+  /* Neutrals. */
   --color-surface: #ffffff;
-  --color-surface-sunken: #f7f9fc;
-  --color-ink: #14181f;
-  --color-ink-muted: #5a6473;
-  --color-hairline: #e2e7ef;
+  --color-surface-sunken: #f6f8fc;
+  --color-surface-raised: #fbfcfe;
+  --color-ink: #0f1420;
+  --color-ink-muted: #5b6577;
+  --color-ink-subtle: #8a93a5;
+  --color-hairline: #e4e8f0;
+  --color-hairline-strong: #d2d9e6;
+
+  /* State tones, kept in the same restrained register. */
+  --color-caution: #a16207;
+  --color-caution-border: #e6c67a;
 
   /* NuAIg's own accent — belongs to the footer mark only (CLAUDE.md §8). */
   --color-nuaig: #069bdf;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
 }
 
 html,
@@ -34,5 +52,69 @@ body {
 body {
   background-color: var(--color-surface-sunken);
   color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+ * App chrome. The header and footer share one gradient family so the page is
+ * bracketed by the same material, rather than by two flat slabs of identical
+ * colour.
+ */
+.chrome-header {
+  background-image: linear-gradient(
+    104deg,
+    var(--color-peak-950) 0%,
+    var(--color-peak-850) 52%,
+    var(--color-peak-800) 100%
+  );
+}
+
+.chrome-footer {
+  background-image: linear-gradient(
+    104deg,
+    var(--color-peak-950) 0%,
+    var(--color-peak-900) 60%,
+    var(--color-peak-850) 100%
+  );
+}
+
+/* A hairline of light along the bottom of the header, so it reads as a plane. */
+.chrome-edge {
+  box-shadow: inset 0 -1px 0 rgba(147, 184, 249, 0.18);
+}
+
+/* Content cards: flat, with a shadow just deep enough to lift off the ground. */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-hairline);
+  box-shadow:
+    0 1px 2px rgba(15, 20, 32, 0.04),
+    0 1px 1px rgba(15, 20, 32, 0.02);
+}
+
+.card-interactive {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.card-interactive:hover {
+  border-color: var(--color-peak-300);
+  box-shadow:
+    0 4px 14px rgba(15, 20, 32, 0.07),
+    0 1px 2px rgba(15, 20, 32, 0.03);
+}
+
+/* Respect a reader's motion preference everywhere, including the hero. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

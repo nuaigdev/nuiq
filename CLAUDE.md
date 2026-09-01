@@ -158,6 +158,7 @@ npm run typecheck                # tsc --noEmit
 ```
 config/{CLIENT_ID}/tenant.json   non-secret client config (§3)
 public/                          nuiq-logo.png, nuaig-logo.svg, nuaig-logo-white.svg (§8)
+src/app/page.tsx                 Home hub (Tab 1) — animated hero + section cards
 src/app/                         root layout = the shell; one folder per tab (§5)
 src/components/                  TopNav, Footer, PageShell
 src/lib/tenant-config.ts         CLIENT_ID -> tenant.json loader, validation, fail-loud
@@ -197,10 +198,10 @@ Every page renders inside one persistent shell: **top-level navigation panel** a
 
 - **Top nav only — no side nav.** The navigation menu is a horizontal bar across the top of the shell. Do not build a left sidebar, a collapsible rail, a hamburger drawer on desktop, or a split top+side arrangement. Four destinations fit comfortably in a top bar; a sidebar would spend horizontal space that Tabs 1 and 2 need — the React Flow canvas and embedded Power BI reports both want the full width.
 - The nav panel is **always visible on every page**, including error, loading, and empty states. A user must never land somewhere with no way back to the other three tabs.
-- It carries exactly the four top-level destinations, in the order given below (Data Flow → Dashboards → Fabric Data Agents → Agents). Order is fixed; it's the intended narrative — see the data, then the reporting on it, then ask questions of it.
+- It carries exactly the four top-level destinations, in the order given below (Home → Dashboards → Data Agents → AI Agents). Order is fixed; Home is the hub, then the reporting on the data, then the two ways of asking questions of it.
 - The NuIQ mark sits in the nav panel as the app's identity and links to the default tab. The client's own logo/name (`branding.clientLogoUrl`, `displayName`) may appear alongside it, read from config — never hardcoded, and never replacing the NuIQ mark (§8).
 - **Tabs are real routes, not client-side state.** Each is its own App Router segment with a deep-linkable URL, so a user can link a colleague to a specific dashboard or agent and browser back/forward behave correctly. Don't build a single page that swaps panels in local state.
-- **Tabs a client hasn't configured hide themselves.** If `tenant.json` lists no `fabricDataAgents` or no `agents`, that tab does not render in the nav — driven by config, not by a hardcoded per-client check. Prefer hiding over rendering an empty tab.
+- **Tabs a client hasn't configured hide themselves.** If `tenant.json` lists no `fabricDataAgents` or no `agents`, that tab does not render in the nav (Home and Dashboards always render — Dashboards because an admin adds the first dashboard from inside it) — driven by config, not by a hardcoded per-client check. Prefer hiding over rendering an empty tab.
 - **The nav is presentation, not access control.** Hiding or omitting a nav item is never a substitute for the server-side checks in §6 — if a user shouldn't reach a route, the route itself must refuse them, not merely lack a link.
 - Surface the signed-in user's current **facility scope** (§2) in the shell, so it's always clear which organization/region/community the numbers on screen represent. A user with scope over multiple communities viewing a census figure must be able to tell what it covers without leaving the page.
 
@@ -214,19 +215,42 @@ core destinations and adding a fifth would dilute it. Future secondary pages
 Anything stated about NuAIg on `/about` must be sourced from nuaig.ai. Do not add
 claims, metrics, leadership names, or client names that are not verifiable there.
 
-### Tab 1 — Data Model & Flow (animated)
+### Tab 1 — Home (hub)
 
-Purpose: give a non-technical viewer an intuitive, moving picture of how data flows from source systems through the warehouse.
+Route: `/`. The landing surface and the orientation point for someone who has
+not used the portal before.
 
-Since Purview isn't available, lineage is sourced by **one or both** of:
+- **Hero: an animated picture of the data flow** — source systems (EHR,
+  financial, staffing) → the Fabric warehouse → what NuIQ puts in front of it,
+  with particles travelling the edges on a loop. Built as inline SVG, not a GIF:
+  it stays sharp at any width, weighs kilobytes rather than megabytes, inherits
+  the theme, and honours `prefers-reduced-motion`.
+- **This hero is illustrative, not live lineage.** It draws the same shape for
+  every client and reads nothing from the warehouse. Do not present it as, or
+  quietly grow it into, real lineage.
+- **Below the hero, the hub lists what is in the portal**: dashboards, Fabric
+  data agents, and AI agents, each as a card naming the real configured items and
+  linking through. These read from config and the dashboard store — never
+  hardcode the counts or names.
+
+**Open question — the lineage explorer has no home.** §1 still names "see the
+data model and how data flows" as a core purpose, and the design below (schema
+introspection, Fabric pipeline lineage, the hand-maintained fallback, React Flow
+with clickable nodes) was Tab 1's job before it became the hub. That work is now
+unplaced: it is too deep to live inside the hub hero, and there is no longer a
+tab for it. Decide where it goes before building it — a sub-route of Home
+(`/lineage`) is the obvious candidate — rather than assuming it was dropped.
+
+Retained design for whenever it is built. Since Purview isn't available, lineage
+is sourced by **one or both** of:
 
 1. **Live schema introspection**: query `INFORMATION_SCHEMA.TABLES` / `INFORMATION_SCHEMA.COLUMNS` against the client's Fabric Warehouse SQL endpoint at request time or on a cache-refresh schedule. This is free — no additional licensing.
-2. **Pipeline lineage via Fabric REST API**: pull pipeline definitions (Data Pipelines / Dataflows Gen2) and parse Copy/transform activities to derive `source → sink` edges. Store the resulting graph in a small first-party metadata store (a `metadata.nodes` / `metadata.edges` table in the warehouse, or a lightweight separate store) rather than recomputing it on every page load.
-3. **Fallback / early-stage option**: a hand-maintained lineage config (YAML/JSON) per client describing the flow manually, for clients where automated extraction isn't wired up yet. This should be a first-class, supported mode — not a hack — since some clients may launch on this before automation is built.
+2. **Pipeline lineage via Fabric REST API**: pull pipeline definitions (Data Pipelines / Dataflows Gen2) and parse Copy/transform activities to derive `source → sink` edges. Store the resulting graph in a small first-party metadata store rather than recomputing it on every page load.
+3. **Fallback / early-stage option**: a hand-maintained lineage config (YAML/JSON) per client describing the flow manually. A first-class, supported mode — not a hack — since some clients may launch on this before automation is built.
 
-Rendering: build the graph layout with **React Flow**, animate data movement along edges (small particles/dots traveling along edge paths on a loop), not a static diagram. Clicking a node should surface table-level detail (row counts, last refresh, description) pulled live from the warehouse where available.
-
-Do not attempt to build a general-purpose lineage crawler comparable to Purview — scope this to what's needed for a clear, correct, visually compelling picture of *this* client's warehouse.
+Rendering, when built: **React Flow**, animating data movement along edges, with
+clickable nodes surfacing table detail (row counts, last refresh, description).
+Do not attempt a general-purpose lineage crawler comparable to Purview.
 
 ### Tab 2 — Power BI Dashboards
 
@@ -297,7 +321,7 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
 - Where the agent returns the SQL or the tables it consulted, surface that as inspectable detail alongside the answer. Users acting on a census or falls number need to see where it came from; an unexplained number in this domain is worse than no number.
 - Conversation state is per-user and per-session. Do not persist agent transcripts server-side without an explicit decision — see the PHI note under Tab 4, which applies here too.
 
-### Tab 4 — Foundry / Copilot Agents
+### Tab 4 — AI Agents (Foundry / Copilot)
 
 Purpose: surface the client's broader AI agents — the ones built on agent *platforms* rather than directly over the warehouse.
 
@@ -334,6 +358,12 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 - The NuIQ mark (`/public/nuiq-logo.png`, the origami peak) is the app's logo and the only logo used for the app itself — header/nav, favicon, loading/empty states, social preview. Per-client branding (`branding.primaryColor`, `branding.clientLogoUrl` in `tenant.json`) may customize accent color and optionally show a client logo alongside NuIQ's — but never replace the NuIQ mark or the NuAIg footer credit.
 - **Asset placement is fixed.** All three logos live in `/public` and are referenced by absolute path (`/nuiq-logo.png`, `/nuaig-logo.svg`, `/nuaig-logo-white.svg`) — do not copy them into `src/`, inline them as base64, or import them as modules.
 - The NuAIg wordmark's accent color is `#069BDF` (the only color that differs from the wordmark fill between the light and dark logo variants). It belongs to the NuAIg mark itself and stays in the footer with it — do not adopt it as a NuIQ accent. NuIQ's own palette stays in the deep indigo/blue facet family of `/public/nuiq-logo.png`.
+- **Gradients belong to the app chrome, not to content.** The header, footer, and
+  Home hero use one indigo gradient family (`.chrome-header` / `.chrome-footer`
+  in `globals.css`) so the page is bracketed by the same material instead of two
+  flat slabs. Content surfaces stay flat — data should never compete with
+  decoration. No glows, no gradient text beyond the wordmark, no gradient on
+  cards or charts.
 - **The NuIQ wordmark carries a gradient; the mark never does.** The word "NuIQ" in the header and footer is rendered with a restrained white -> light blue -> indigo gradient (`bg-clip-text`). This is a deliberate, approved exception to the "no gradients" rule below, and applies to the *text* only — the origami mark PNG stays flat and untouched. Do not extend gradients to the mark, to backgrounds, or to UI chrome.
 - Keep the visual language consistent with the origami mark's aesthetic: flat, precise, geometric, restrained color palette (deep indigo/blue family). Avoid generic dashboard-template visual clichés (bar-chart iconography, glowing gradients, stock "AI brain" imagery) anywhere in the product UI, not just the logo.
 

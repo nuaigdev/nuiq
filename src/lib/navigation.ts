@@ -3,8 +3,9 @@ import type { TenantConfig } from "./tenant-config";
 /**
  * The four top-level destinations (CLAUDE.md §5).
  *
- * Order is fixed and intentional: see the data, then the reporting on it, then
- * ask questions of it. Do not reorder these as a cosmetic change.
+ * Home is the hub; the rest are ordered as the reporting on the data, then the
+ * two ways of asking questions of it. Do not reorder these as a cosmetic
+ * change.
  *
  * A tab the client has not configured hides itself rather than rendering empty.
  * Hiding is presentation only — it is never access control. Any route that a
@@ -22,8 +23,8 @@ type NavDefinition = NavItem & {
 
 const NAV_DEFINITIONS: NavDefinition[] = [
   {
-    href: "/data-flow",
-    label: "Data Flow",
+    href: "/",
+    label: "Home",
     isConfigured: () => true,
   },
   {
@@ -39,8 +40,8 @@ const NAV_DEFINITIONS: NavDefinition[] = [
     isConfigured: (config) => config.fabricDataAgents.length > 0,
   },
   {
-    href: "/agents",
-    label: "Agents",
+    href: "/ai-agents",
+    label: "AI Agents",
     isConfigured: (config) => config.agents.length > 0,
   },
 ];
@@ -51,7 +52,7 @@ export function getNavItems(config: TenantConfig): NavItem[] {
   );
 }
 
-/** Where "/" and the NuIQ mark point: the first tab this client actually has. */
-export function getDefaultRoute(config: TenantConfig): string {
-  return getNavItems(config)[0]?.href ?? "/data-flow";
+/** Where the NuIQ mark points. Home is always present. */
+export function getDefaultRoute(): string {
+  return "/";
 }

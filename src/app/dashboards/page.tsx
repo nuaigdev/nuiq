@@ -16,23 +16,24 @@ export default async function DashboardsPage() {
 
   return (
     <div className="mx-auto max-w-[1600px] px-6 py-7">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">
-            Dashboards
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-3xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-peak-600">
+            Power BI
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
-            Power BI Dashboards
+          <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-tight text-ink">
+            Dashboards
           </h1>
-          <p className="mt-1.5 text-sm text-ink-muted">
-            {dashboards.length === 0
-              ? "Nothing configured for this portal yet."
-              : "Open a dashboard to view it live."}
+          <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
+            The Power BI reports built on your warehouse — census and occupancy,
+            falls and incidents, staffing — opened with your own Microsoft
+            account. You see exactly the communities you are entitled to, because
+            Power BI applies your permissions rather than NuIQ deciding for you.
           </p>
         </div>
         <Link
           href="/dashboards/manage"
-          className="rounded border border-hairline bg-surface px-3.5 py-1.5 text-sm text-ink-muted transition-colors hover:border-peak-300 hover:text-ink"
+          className="shrink-0 rounded-lg border border-hairline-strong bg-surface px-3.5 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-peak-300 hover:text-ink"
         >
           Manage dashboards
         </Link>
