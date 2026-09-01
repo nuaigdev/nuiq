@@ -63,9 +63,12 @@ export default async function ReportPage({
     <div className="mx-auto max-w-[1600px] px-6 py-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">
-            Dashboards
-          </p>
+          <Link
+            href="/dashboards"
+            className="text-xs font-medium uppercase tracking-wider text-ink-muted transition-colors hover:text-peak-600"
+          >
+            &larr; All dashboards
+          </Link>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
             {dashboard.name}
           </h1>

@@ -35,6 +35,15 @@ const formSchema = z.object({
     .trim()
     .optional()
     .transform((value) => (value ? value : undefined)),
+  thumbnailUrl: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? value : undefined))
+    .refine(
+      (value) => value === undefined || z.string().url().safeParse(value).success,
+      "Preview image must be a URL.",
+    ),
 });
 
 export type ActionState = { error?: string; success?: string };
@@ -59,6 +68,7 @@ export async function addDashboardAction(
     workspaceId: formData.get("workspaceId"),
     id: formData.get("id"),
     pageName: formData.get("pageName"),
+    thumbnailUrl: formData.get("thumbnailUrl"),
   });
 
   if (!parsed.success) {

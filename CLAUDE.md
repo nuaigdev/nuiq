@@ -249,6 +249,17 @@ service principal for Power BI and never asserts an identity on a user's behalf.
 - Report list and workspace ID come from `tenant.json`; never hardcoded. A report
   id arriving in a URL must be matched against that config before it is passed to
   Power BI (`findReport`), so a user cannot request arbitrary reports.
+- **`/dashboards` is a gallery of still-preview tiles, not a live report.**
+  Opening a tile loads the real interactive report at `/dashboards/[reportId]`.
+  Never embed on the index: N dashboards would mean N Power BI iframes loading
+  at once, for reports nobody is reading yet.
+- **Tile previews are supplied, not fetched.** Power BI publishes no public
+  report-thumbnail API, so a tile uses `thumbnailUrl` when set and otherwise
+  draws a deterministic facet placeholder. The placeholder is abstract on
+  purpose — a fake mini chart would be a dashboard-template cliché (§8) and
+  would imply data that is not really there. If real auto-generated thumbnails
+  are wanted, the only supported route is the Power BI `exportToFile` API, which
+  needs a capacity and runs asynchronously — it cannot be called per page load.
 - **Dashboards come from two places, merged.** `tenant.json` is the baseline that
   ships with the deployment; `data/{CLIENT_ID}/dashboards.json` holds what an
   admin added or hid at runtime. tenant.json is never written to — it stays

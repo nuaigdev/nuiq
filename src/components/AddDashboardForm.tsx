@@ -74,6 +74,17 @@ export function AddDashboardForm() {
             className={`${FIELD} mt-1.5 font-mono text-xs`}
           />
         </div>
+        <div className="sm:col-span-2">
+          <label className={LABEL} htmlFor="thumbnailUrl">
+            Preview image URL <span className="normal-case">(optional)</span>
+          </label>
+          <input
+            id="thumbnailUrl"
+            name="thumbnailUrl"
+            placeholder="A screenshot of the report; omit for a placeholder tile"
+            className={`${FIELD} mt-1.5 text-xs`}
+          />
+        </div>
       </div>
 
       {state.error ? (

@@ -27,6 +27,7 @@ const dashboardEntrySchema = z.object({
   name: z.string().min(1),
   workspaceId: z.string().min(1),
   pageName: z.string().min(1).optional(),
+  thumbnailUrl: z.string().url().optional(),
 });
 
 const storeSchema = z.object({
@@ -86,6 +87,7 @@ export async function getDashboards(config: TenantConfig): Promise<Dashboard[]> 
       name: report.name,
       workspaceId: report.workspaceId ?? config.powerBi.workspaceId,
       pageName: report.pageName,
+      thumbnailUrl: report.thumbnailUrl,
       source: "config",
     }));
 

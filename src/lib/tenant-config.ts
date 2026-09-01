@@ -19,6 +19,12 @@ const powerBiReportSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   /**
+   * Optional still image shown on the dashboard tile. Power BI has no public
+   * report-thumbnail API, so this is supplied rather than fetched. Omit it and
+   * the tile falls back to a generated placeholder.
+   */
+  thumbnailUrl: z.string().url().optional(),
+  /**
    * Workspace this report lives in. Optional — falls back to
    * powerBi.workspaceId. Set it when a client's reports are spread across
    * several Fabric/Power BI workspaces.
