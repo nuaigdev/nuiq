@@ -19,6 +19,12 @@ const powerBiReportSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   /**
+   * Workspace this report lives in. Optional — falls back to
+   * powerBi.workspaceId. Set it when a client's reports are spread across
+   * several Fabric/Power BI workspaces.
+   */
+  workspaceId: z.string().min(1).optional(),
+  /**
    * Report page (section) to open on, e.g. "bcb646c3f4e6fe1a7859". Optional —
    * omit to open the report's default page.
    */
@@ -174,6 +180,13 @@ let cached: TenantConfig | undefined;
 
 /** The current deployment's client config. Throws loudly if it is missing or invalid. */
 export function getTenantConfig(): TenantConfig {
+  // In production the config is immutable for the life of the deployment, so it
+  // is read once. In development it is re-read on every call: otherwise editing
+  // tenant.json appears to do nothing until the server is restarted, which is a
+  // confusing way to lose ten minutes.
+  if (process.env.NODE_ENV !== "production") {
+    return loadTenantConfig();
+  }
   cached ??= loadTenantConfig();
   return cached;
 }

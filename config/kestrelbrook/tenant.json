@@ -10,7 +10,7 @@
     "reports": [
       {
         "id": "5ef8559f-b8c2-47c4-a618-0fbbb5c5b234",
-        "name": "Dashboard",
+        "name": "Senior Living Journey Dashboard",
         "pageName": "bcb646c3f4e6fe1a7859",
         "facilityFilterField": "CommunityId"
       }

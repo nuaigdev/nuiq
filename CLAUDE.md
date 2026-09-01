@@ -146,6 +146,9 @@ npm run typecheck                # tsc --noEmit
   `CLIENT_ID`. If routes were statically prerendered, the config of whichever client
   was set at build time would be baked into the HTML every other deployment serves.
   This is why `npm run build` must succeed with no `CLIENT_ID` present.
+- **`tenant.json` is re-read on every request in development, cached once in
+  production.** Editing config in dev takes effect immediately; in a deployment
+  the config is immutable for the life of the container.
 - **TypeScript is pinned to 6.x.** `eslint-config-next` pulls `typescript-eslint`,
   which does not yet support TypeScript 7. Bumping TS to 7 breaks `npm run lint`
   entirely — revisit only once typescript-eslint ships TS 7 support.
@@ -159,7 +162,10 @@ src/app/                         root layout = the shell; one folder per tab (§
 src/components/                  TopNav, Footer, PageShell
 src/lib/tenant-config.ts         CLIENT_ID -> tenant.json loader, validation, fail-loud
 src/lib/navigation.ts            the four tabs, fixed order, config-driven visibility
-src/lib/session.ts               facility scope — STUB, see §6 before trusting it
+src/lib/session.ts               signed-in user + delegated Power BI token
+src/lib/dashboard-store.ts       config + runtime dashboard merge (see §5 Tab 2)
+src/app/dashboards/manage/       admin add/remove screen — NOT yet role-gated
+data/{CLIENT_ID}/               runtime store, gitignored, ephemeral on Azure
 ```
 
 ---
@@ -243,6 +249,22 @@ service principal for Power BI and never asserts an identity on a user's behalf.
 - Report list and workspace ID come from `tenant.json`; never hardcoded. A report
   id arriving in a URL must be matched against that config before it is passed to
   Power BI (`findReport`), so a user cannot request arbitrary reports.
+- **Dashboards come from two places, merged.** `tenant.json` is the baseline that
+  ships with the deployment; `data/{CLIENT_ID}/dashboards.json` holds what an
+  admin added or hid at runtime. tenant.json is never written to — it stays
+  config-as-code (§3). A config-sourced dashboard cannot be deleted at runtime,
+  only hidden, and hiding is reversible.
+- **Each dashboard carries its own `workspaceId`**, so one portal can show
+  reports from several Fabric/Power BI workspaces. It falls back to
+  `powerBi.workspaceId` when absent.
+- **The runtime store is a local JSON file and an Azure Container App's disk is
+  ephemeral.** Runtime edits are lost on revision restart or scale-to-zero.
+  Before this is relied on in production, back `dashboard-store.ts` with durable
+  storage — its interface is the only thing that should need to change.
+- **`/dashboards/manage` is not yet access-controlled.** It requires a signed-in
+  user and nothing more. Managing what a whole organization sees is an admin's
+  job and must be gated on an admin role server-side before production (§6);
+  hiding the link is not access control.
 - `facilityFilterField` is informational only. The filtering is enforced by RLS in
   the semantic model, not by anything NuIQ sends.
 

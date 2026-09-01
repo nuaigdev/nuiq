@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { PowerBiReport, TenantConfig } from "./tenant-config";
+
 
 /**
  * Power BI, embedded with the signed-in user's own identity ("user owns data").
@@ -23,16 +23,21 @@ export type ReportAccess =
   | { status: "not-found" }
   | { status: "error"; detail: string };
 
-/** Look up a report's embed URL as the signed-in user. */
+/**
+ * Look up a report's embed URL as the signed-in user.
+ *
+ * The workspace is per-report, so a client's dashboards can live in several
+ * different Fabric/Power BI workspaces.
+ */
 export async function getReportEmbedUrl(
-  config: TenantConfig,
-  report: PowerBiReport,
+  workspaceId: string,
+  reportId: string,
   powerBiToken: string,
 ): Promise<ReportAccess> {
   let response: Response;
   try {
     response = await fetch(
-      `${POWERBI_API}/groups/${config.powerBi.workspaceId}/reports/${report.id}`,
+      `${POWERBI_API}/groups/${workspaceId}/reports/${reportId}`,
       {
         headers: { Authorization: `Bearer ${powerBiToken}` },
         cache: "no-store",
@@ -60,12 +65,4 @@ export async function getReportEmbedUrl(
     return { status: "error", detail: "Power BI returned no embed URL." };
   }
   return { status: "ok", embedUrl: body.embedUrl };
-}
-
-/** Find a report by id in this client's config. Never trust an id from the URL. */
-export function findReport(
-  config: TenantConfig,
-  reportId: string,
-): PowerBiReport | undefined {
-  return config.powerBi.reports.find((report) => report.id === reportId);
 }

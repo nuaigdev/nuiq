@@ -29,7 +29,9 @@ const NAV_DEFINITIONS: NavDefinition[] = [
   {
     href: "/dashboards",
     label: "Dashboards",
-    isConfigured: (config) => config.powerBi.reports.length > 0,
+    // Always available: an admin can add dashboards from within the tab, so
+    // hiding it when config is empty would hide the only way to add the first.
+    isConfigured: () => true,
   },
   {
     href: "/data-agents",
