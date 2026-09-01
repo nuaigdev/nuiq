@@ -210,6 +210,12 @@ Accepted departures while on Vercel, all deliberate:
 - **No storage versioning.** Vercel Blob does not support it natively, and the
   demo does not need it. Revisit when a production client moves to Azure Blob,
   where container-level versioning would make a bad config edit recoverable.
+- **`output: "standalone"` is disabled on Vercel** (`next.config.ts` keys off the
+  `VERCEL` env var). Vercel runs its own file tracing and expects the normal
+  build layout; with standalone output the build fails right at the end with
+  `ENOENT ... .next/next-server.js.nft.json`. Standalone stays on for every other
+  target, because the Azure Container Apps Dockerfile needs it. Do not remove
+  either branch.
 - **Preview deployments are unauthenticated.** Each preview gets a unique URL and
   Entra will not have it registered, so sign-in cannot work there. Do not build
   anything to work around this; use the stable production URL to test auth.
