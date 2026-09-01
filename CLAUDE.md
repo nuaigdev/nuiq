@@ -260,6 +260,13 @@ service principal for Power BI and never asserts an identity on a user's behalf.
   would imply data that is not really there. If real auto-generated thumbnails
   are wanted, the only supported route is the Power BI `exportToFile` API, which
   needs a capacity and runs asynchronously — it cannot be called per page load.
+- **The Power BI embed must never be server-rendered.** `powerbi-client` is a
+  browser bundle that touches `self` at import time, so evaluating it in Node
+  kills the render worker — Next reports this as *"Jest worker encountered N
+  child process exceptions"*, which names neither the module nor the cause.
+  `"use client"` alone is not enough, because client components are still
+  server-rendered; the embed is loaded through `next/dynamic` with `ssr: false`
+  in `PowerBiEmbed.tsx`. Never import `PowerBiReportView` directly.
 - **Dashboards come from two places, merged.** `tenant.json` is the baseline that
   ships with the deployment; `data/{CLIENT_ID}/dashboards.json` holds what an
   admin added or hid at runtime. tenant.json is never written to — it stays

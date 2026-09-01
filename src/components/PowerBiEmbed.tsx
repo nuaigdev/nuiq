@@ -1,41 +1,35 @@
 "use client";
 
-import { models } from "powerbi-client";
-import { PowerBIEmbed } from "powerbi-client-react";
+import dynamic from "next/dynamic";
 
 /**
- * Renders a Power BI report with the signed-in user's own Entra token
- * (tokenType: Aad — "user owns data"). Power BI applies that user's
- * permissions and row-level security directly; NuIQ asserts nothing.
+ * Browser-only wrapper around the Power BI embed.
+ *
+ * `powerbi-client` is a browser bundle: it references `self` at import time, so
+ * server-rendering it crashes the Next render worker. Client components are
+ * still server-rendered by default, so marking the embed "use client" is not
+ * enough on its own — it has to be excluded from SSR explicitly, which is what
+ * `ssr: false` does here. `ssr: false` is only permitted inside a client
+ * component, which is why this thin wrapper exists.
  */
-export function PowerBiEmbed({
-  reportId,
-  embedUrl,
-  accessToken,
-  pageName,
-}: {
+const PowerBiReportView = dynamic(() => import("./PowerBiReportView"), {
+  ssr: false,
+  loading: () => (
+    <div
+      role="status"
+      aria-label="Loading dashboard"
+      className="flex h-[78vh] w-full items-center justify-center bg-surface-sunken"
+    >
+      <span className="text-sm text-ink-muted">Loading dashboard…</span>
+    </div>
+  ),
+});
+
+export function PowerBiEmbed(props: {
   reportId: string;
   embedUrl: string;
   accessToken: string;
   pageName?: string;
 }) {
-  return (
-    <PowerBIEmbed
-      embedConfig={{
-        type: "report",
-        id: reportId,
-        embedUrl,
-        accessToken,
-        tokenType: models.TokenType.Aad,
-        ...(pageName ? { pageName } : {}),
-        settings: {
-          panes: {
-            filters: { visible: false },
-            pageNavigation: { visible: true },
-          },
-        },
-      }}
-      cssClassName="h-[78vh] w-full"
-    />
-  );
+  return <PowerBiReportView {...props} />;
 }
