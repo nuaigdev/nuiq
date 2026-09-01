@@ -331,6 +331,17 @@ user's own* Entra token (`powerbi-client-react`, `tokenType: Aad`). Power BI
 applies that person's permissions and row-level security directly. NuIQ holds no
 service principal for Power BI and never asserts an identity on a user's behalf.
 
+- **Detect no-access before embedding, and say so.** Being able to open a report
+  does not mean being able to read its dataset — a report shared without dataset
+  access renders full chrome and empty visuals, which reads as a broken
+  dashboard rather than a permission problem. `getReportEmbedUrl` therefore
+  probes the dataset as the user and returns `no-data-access` separately from
+  `forbidden`. The dataset probe treats only 401/403 as denial: a probe that
+  cannot reach Power BI must never be reported as lost access.
+- **The embed also catches render-time errors.** Visual-level permissions, an
+  unresolved RLS role, or a token expiring mid-session can still fail after the
+  pre-checks pass, so `PowerBiReportView` handles the Power BI `error` event and
+  swaps in the same banner. Never let a failed embed sit there empty.
 - **A user who lacks Power BI access sees nothing.** That is the intended
   behaviour, not a bug to work around: access is administered in Power BI, not in
   NuIQ. Every viewer therefore needs Power BI access and a licence (Free works

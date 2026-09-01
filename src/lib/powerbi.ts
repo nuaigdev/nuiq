@@ -19,7 +19,15 @@ const POWERBI_API = "https://api.powerbi.com/v1.0/myorg";
 
 export type ReportAccess =
   | { status: "ok"; embedUrl: string }
+  /** Cannot open the report at all. */
   | { status: "forbidden" }
+  /**
+   * Can open the report but cannot read its dataset. Power BI renders the
+   * report chrome and leaves every visual empty, which looks like a broken
+   * dashboard rather than a permission problem — so it is worth detecting
+   * separately and saying so plainly.
+   */
+  | { status: "no-data-access" }
   | { status: "not-found" }
   | { status: "error"; detail: string };
 
@@ -60,9 +68,55 @@ export async function getReportEmbedUrl(
     };
   }
 
-  const body = (await response.json()) as { embedUrl?: string };
+  const body = (await response.json()) as {
+    embedUrl?: string;
+    datasetId?: string;
+  };
   if (!body.embedUrl) {
     return { status: "error", detail: "Power BI returned no embed URL." };
   }
+
+  // Reading the report does not imply reading the semantic model behind it: a
+  // report can be shared without dataset access. Probe the dataset as the user
+  // so an empty dashboard is caught here rather than being rendered blank.
+  if (body.datasetId) {
+    const dataset = await canReadDataset(
+      workspaceId,
+      body.datasetId,
+      powerBiToken,
+    );
+    if (dataset === "forbidden") {
+      return { status: "no-data-access" };
+    }
+  }
+
   return { status: "ok", embedUrl: body.embedUrl };
+}
+
+/**
+ * Whether the signed-in user can read a dataset.
+ *
+ * "unknown" on anything other than a clear allow/deny: a probe that cannot
+ * reach Power BI must not be treated as a denial, or a transient blip would
+ * tell a user they have lost access they still have.
+ */
+async function canReadDataset(
+  workspaceId: string,
+  datasetId: string,
+  powerBiToken: string,
+): Promise<"ok" | "forbidden" | "unknown"> {
+  try {
+    const response = await fetch(
+      `${POWERBI_API}/groups/${workspaceId}/datasets/${datasetId}`,
+      {
+        headers: { Authorization: `Bearer ${powerBiToken}` },
+        cache: "no-store",
+      },
+    );
+
+    if (response.status === 401 || response.status === 403) return "forbidden";
+    return response.ok ? "ok" : "unknown";
+  } catch {
+    return "unknown";
+  }
 }

@@ -59,6 +59,7 @@ export function PowerBiEmbed(props: {
   embedUrl: string;
   accessToken: string;
   pageName?: string;
+  reportName: string;
 }) {
   const isBrowser = useIsBrowser();
 

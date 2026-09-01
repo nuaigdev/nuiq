@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DashboardSwitcher } from "@/components/DashboardSwitcher";
+import { NoAccessBanner } from "@/components/NoAccessBanner";
 import { PowerBiEmbed } from "@/components/PowerBiEmbed";
 import type { Dashboard } from "@/lib/dashboard-store";
 import { findDashboard, getDashboards } from "@/lib/dashboard-store";
@@ -133,15 +134,13 @@ async function ReportBody({
   );
 
   if (access.status === "forbidden") {
-    return (
-      <Notice tone="warn" title="You do not have access to this dashboard">
-        You are signed in, but Power BI has not granted your account access to{" "}
-        <strong className="font-medium text-ink">{dashboard.name}</strong>.
-        Access is managed in Power BI, not in NuIQ — ask whoever administers the
-        workspace to share the report with you. A Power BI licence is also
-        required.
-      </Notice>
-    );
+    return <NoAccessBanner reportName={dashboard.name} reason="report" />;
+  }
+
+  // Openable, but the data behind it is not readable — Power BI would render an
+  // empty dashboard, which reads as broken rather than as a permission problem.
+  if (access.status === "no-data-access") {
+    return <NoAccessBanner reportName={dashboard.name} reason="data" />;
   }
 
   if (access.status === "not-found") {
@@ -169,6 +168,7 @@ async function ReportBody({
         embedUrl={access.embedUrl}
         accessToken={session.powerBiToken}
         pageName={dashboard.pageName}
+        reportName={dashboard.name}
       />
     </div>
   );
