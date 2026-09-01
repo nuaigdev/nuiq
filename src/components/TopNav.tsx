@@ -37,7 +37,7 @@ export function TopNav({
     <header className="chrome-header chrome-edge sticky top-0 z-50 text-white">
       <nav
         aria-label="Primary"
-        className="mx-auto flex h-[68px] max-w-[1600px] items-center gap-9 px-6"
+        className="mx-auto flex h-[68px] max-w-[1600px] items-center gap-6 px-6"
       >
         <Link
           href={defaultRoute}
@@ -59,7 +59,22 @@ export function TopNav({
           </span>
         </Link>
 
-        <ul className="flex items-center gap-0.5">
+        {/* Which client's portal this is. Sits with the product mark rather than
+            with the user menu: it answers "where am I", not "who am I", and
+            keeping the two apart stops the right-hand cluster becoming a pile of
+            unrelated labels. */}
+        <div className="flex min-w-0 shrink items-center gap-2.5">
+          <span aria-hidden className="h-6 w-px shrink-0 bg-white/15" />
+          {clientLogoUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element -- client-supplied URL, dimensions unknown */
+            <img src={clientLogoUrl} alt="" className="h-6 w-auto shrink-0" />
+          ) : null}
+          <span className="truncate text-sm text-peak-100/85" title={clientName}>
+            {clientName}
+          </span>
+        </div>
+
+        <ul className="flex shrink-0 items-center gap-0.5">
           {items.map((item) => {
             const isActive =
               item.href === "/"
@@ -85,17 +100,7 @@ export function TopNav({
           })}
         </ul>
 
-        <div className="ml-auto flex shrink-0 items-center gap-4">
-          {clientLogoUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element -- client-supplied URL, dimensions unknown */
-            <img
-              src={clientLogoUrl}
-              alt={clientName}
-              className="h-7 w-auto border-r border-white/15 pr-4"
-            />
-          ) : null}
-          {authControls}
-        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-4">{authControls}</div>
       </nav>
     </header>
   );

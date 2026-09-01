@@ -77,10 +77,7 @@ export default async function HomePage() {
       <section className="chrome-header text-white">
         <div className="mx-auto grid max-w-[1600px] items-center gap-10 px-6 py-14 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-peak-300">
-              {config.displayName}
-            </p>
-            <h1 className="mt-3 text-4xl font-semibold leading-[1.1] tracking-tight">
+            <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight">
               Your data, end to end.
             </h1>
             <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-peak-100/75">

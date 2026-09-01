@@ -266,6 +266,11 @@ Every page renders inside one persistent shell: **top-level navigation panel** a
 - **Top nav only — no side nav.** The navigation menu is a horizontal bar across the top of the shell. Do not build a left sidebar, a collapsible rail, a hamburger drawer on desktop, or a split top+side arrangement. Four destinations fit comfortably in a top bar; a sidebar would spend horizontal space that Tabs 1 and 2 need — the React Flow canvas and embedded Power BI reports both want the full width.
 - The nav panel is **always visible on every page**, including error, loading, and empty states. A user must never land somewhere with no way back to the other three tabs.
 - It carries exactly the four top-level destinations, in the order given below (Home → Dashboards → Data Agents → AI Agents). Order is fixed; Home is the hub, then the reporting on the data, then the two ways of asking questions of it.
+- **Client identity sits beside the NuIQ mark, not with the user menu.** The
+  client's `displayName` (and `clientLogoUrl` when set) answers "which client's
+  portal is this" — product context, not user context. Keeping it on the left,
+  behind a divider, leaves the right-hand cluster for who is signed in. Never
+  render it as page content: it is chrome, and on a page it reads as a heading.
 - The NuIQ mark sits in the nav panel as the app's identity and links to the default tab. The client's own logo/name (`branding.clientLogoUrl`, `displayName`) may appear alongside it, read from config — never hardcoded, and never replacing the NuIQ mark (§8).
 - **Tabs are real routes, not client-side state.** Each is its own App Router segment with a deep-linkable URL, so a user can link a colleague to a specific dashboard or agent and browser back/forward behave correctly. Don't build a single page that swaps panels in local state.
 - **Tabs a client hasn't configured hide themselves.** If `tenant.json` lists no `fabricDataAgents` or no `agents`, that tab does not render in the nav (Home and Dashboards always render — Dashboards because an admin adds the first dashboard from inside it) — driven by config, not by a hardcoded per-client check. Prefer hiding over rendering an empty tab.
