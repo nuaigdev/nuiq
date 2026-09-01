@@ -21,25 +21,35 @@ export type AppSession = {
   email?: string;
   /** Delegated Power BI token. Server-side only — never send this to the client. */
   powerBiToken?: string;
+  /**
+   * True when the token could not be renewed and the user must sign in again.
+   * Distinct from "no access": one is a stale session, the other is a
+   * permission the user genuinely does not have. Telling them apart is the
+   * difference between an actionable message and a dead end.
+   */
+  sessionExpired: boolean;
 };
 
 export async function getSession(): Promise<AppSession> {
   // Never call auth() before the environment can support it — without a secret
   // NextAuth throws, which would take down every page rather than just sign-in.
   if (!isAuthConfigured()) {
-    return { isAuthenticated: false };
+    return { isAuthenticated: false, sessionExpired: false };
   }
 
   const session = await auth();
 
   if (!session?.user) {
-    return { isAuthenticated: false };
+    return { isAuthenticated: false, sessionExpired: false };
   }
+
+  const expired = Boolean(session.error) || !session.powerBiToken;
 
   return {
     isAuthenticated: true,
     userName: session.user.name ?? undefined,
     email: session.user.email ?? undefined,
-    powerBiToken: session.powerBiToken,
+    powerBiToken: expired ? undefined : session.powerBiToken,
+    sessionExpired: expired,
   };
 }

@@ -284,13 +284,26 @@ service principal for Power BI and never asserts an identity on a user's behalf.
   would imply data that is not really there. If real auto-generated thumbnails
   are wanted, the only supported route is the Power BI `exportToFile` API, which
   needs a capacity and runs asynchronously — it cannot be called per page load.
+- **The Power BI token is refreshed, not just stored.** Entra access tokens last
+  about an hour. `auth.ts` requests `offline_access`, keeps the refresh token on
+  the JWT, and renews five minutes before expiry. Without this, returning to the
+  portal after a break means Power BI rejects a stale token and the UI reports it
+  as "no access" — wrong, and impossible for the user to act on. When renewal
+  fails the session is marked expired and the UI says so, which is a different
+  message from a genuine permission problem. Keep those two states distinct.
 - **The Power BI embed must never be server-rendered.** `powerbi-client` is a
   browser bundle that touches `self` at import time, so evaluating it in Node
   kills the render worker — Next reports this as *"Jest worker encountered N
   child process exceptions"*, which names neither the module nor the cause.
   `"use client"` alone is not enough, because client components are still
-  server-rendered; the embed is loaded through `next/dynamic` with `ssr: false`
-  in `PowerBiEmbed.tsx`. Never import `PowerBiReportView` directly.
+  server-rendered. Two guards are needed and both must stay: `next/dynamic` with
+  `ssr: false`, **and** a `useSyncExternalStore` browser gate in
+  `PowerBiEmbed.tsx`. `ssr: false` alone left the import reachable from the
+  module graph, which Next evaluates in a Node worker during route compilation —
+  so the crash returned on hard refresh (which forces a recompile) while ordinary
+  navigation was fine. The route also sets `dynamic = "force-dynamic"` at page
+  level to stop static-path collection. Never add `generateStaticParams` here: it
+  flips the route to SSG. Never import `PowerBiReportView` directly.
 - **Dashboards come from two places, merged.** `tenant.json` is the baseline that
   ships with the deployment; `data/{CLIENT_ID}/dashboards.json` holds what an
   admin added or hid at runtime. tenant.json is never written to — it stays

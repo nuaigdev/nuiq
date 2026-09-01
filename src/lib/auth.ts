@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 
 import { getTenantConfig } from "./tenant-config";
@@ -22,7 +23,18 @@ const POWERBI_SCOPES = [
   "https://analysis.windows.net/powerbi/api/Workspace.Read.All",
 ];
 
-const SCOPE = ["openid", "profile", "email", "offline_access", ...POWERBI_SCOPES].join(" ");
+// offline_access is what makes Entra issue a refresh token. Without it the
+// Power BI token simply dies after about an hour with no way to renew it.
+const SCOPE = [
+  "openid",
+  "profile",
+  "email",
+  "offline_access",
+  ...POWERBI_SCOPES,
+].join(" ");
+
+/** Renew slightly early, so a token does not expire mid-request. */
+const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
 /**
  * Whether sign-in can work in this environment.
@@ -47,6 +59,60 @@ export function missingAuthEnv(): string[] {
   return missing;
 }
 
+/**
+ * Exchange the refresh token for a fresh access token.
+ *
+ * Access tokens last about an hour. Without this, coming back to the portal
+ * after lunch means Power BI rejects the stale token and the UI reports it as
+ * "no access" — which is both wrong and impossible for the user to act on.
+ */
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  const config = getTenantConfig();
+
+  if (!token.refreshToken) {
+    return { ...token, error: "NoRefreshToken" };
+  }
+
+  try {
+    const response = await fetch(
+      `https://login.microsoftonline.com/${config.entraTenantId}/oauth2/v2.0/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          client_id: config.entraClientId,
+          client_secret: process.env.ENTRA_CLIENT_SECRET ?? "",
+          refresh_token: token.refreshToken,
+          scope: SCOPE,
+        }),
+        cache: "no-store",
+      },
+    );
+
+    const body = (await response.json()) as {
+      access_token?: string;
+      expires_in?: number;
+      refresh_token?: string;
+    };
+
+    if (!response.ok || !body.access_token) {
+      return { ...token, error: "RefreshFailed" };
+    }
+
+    return {
+      ...token,
+      powerBiToken: body.access_token,
+      powerBiTokenExpires: Date.now() + (body.expires_in ?? 3600) * 1000,
+      // Entra may hand back a rotated refresh token; keep the newest one.
+      refreshToken: body.refresh_token ?? token.refreshToken,
+      error: undefined,
+    };
+  } catch {
+    return { ...token, error: "RefreshFailed" };
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth(() => {
   const config = getTenantConfig();
 
@@ -61,21 +127,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
     ],
     callbacks: {
       async jwt({ token, account }) {
-        // Keep the Power BI access token on the JWT. Power BI is called with
-        // this, so the call carries the user's own entitlements.
-        if (account?.access_token) {
-          token.powerBiToken = account.access_token;
-          token.powerBiTokenExpires = account.expires_at
-            ? account.expires_at * 1000
-            : undefined;
+        // First pass, straight after sign-in: capture what Entra issued.
+        if (account) {
+          return {
+            ...token,
+            powerBiToken: account.access_token,
+            powerBiTokenExpires: account.expires_at
+              ? account.expires_at * 1000
+              : Date.now() + 3600 * 1000,
+            refreshToken: account.refresh_token,
+            error: undefined,
+          };
         }
-        return token;
+
+        // Still valid with room to spare — nothing to do.
+        if (
+          token.powerBiTokenExpires &&
+          Date.now() < token.powerBiTokenExpires - REFRESH_MARGIN_MS
+        ) {
+          return token;
+        }
+
+        return refreshAccessToken(token);
       },
       async session({ session, token }) {
-        session.powerBiToken = token.powerBiToken as string | undefined;
-        session.powerBiTokenExpires = token.powerBiTokenExpires as
-          | number
-          | undefined;
+        session.powerBiToken = token.powerBiToken;
+        session.powerBiTokenExpires = token.powerBiTokenExpires;
+        session.error = token.error;
         return session;
       },
     },

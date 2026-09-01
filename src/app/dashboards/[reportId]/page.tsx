@@ -9,6 +9,14 @@ import { getReportEmbedUrl } from "@/lib/powerbi";
 import { getSession } from "@/lib/session";
 import { getTenantConfig } from "@/lib/tenant-config";
 
+/**
+ * Rendered per request, never prerendered. Without this Next tries to collect
+ * static paths for this segment, which evaluates the route in a Node worker —
+ * the step that was crashing on hard refresh ("Failed to generate static paths
+ * for /dashboards/[reportId]" in the dev log, right before the worker died).
+ */
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params,
 }: {
@@ -97,6 +105,16 @@ async function ReportBody({
   dashboard: Dashboard;
   session: Awaited<ReturnType<typeof getSession>>;
 }) {
+  if (session.sessionExpired) {
+    return (
+      <Notice tone="warn" title="Your session has expired">
+        Your Microsoft sign-in has timed out, so Power BI will not accept it any
+        more. Sign out and back in from the top right to reconnect. This is not a
+        permissions problem — nothing about your access has changed.
+      </Notice>
+    );
+  }
+
   if (!session.isAuthenticated || !session.powerBiToken) {
     return (
       <Notice title="Sign in to view this dashboard">
