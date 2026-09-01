@@ -48,15 +48,28 @@ Concretely:
 
 ### Config structure
 
+Client configuration lives in **object storage, one document per client** — not
+in the repo and not in a database:
+
 ```
-/config
-  /client-a
-    tenant.json
-  /client-b
-    tenant.json
+<store>/clients/<CLIENT_ID>/tenant-config.json
 ```
 
-`tenant.json` contains **non-secret** identifiers only:
+It is read through the `ConfigStore` interface in `src/lib/config-store/`, whose
+provider is chosen by `CONFIG_STORE_PROVIDER`. **No code outside that folder may
+name a storage vendor.** The current adapter is `vercel-blob`; an `azure-blob`
+adapter can be added later without touching a single caller.
+
+Because the document is writable at runtime, admin edits (adding or removing a
+dashboard) take effect without a redeploy. Writes are **conditional on the etag
+the document was read at**, so two admins editing at once produce a conflict the
+second one can act on rather than one silently losing their change.
+
+The repo keeps `config/<client>/tenant.json` only as **seed input** for
+`npm run seed-config`. It is not read at runtime, and editing it changes nothing
+until it is seeded.
+
+The shape of the document is unchanged — non-secret identifiers only:
 
 ```json
 {
@@ -119,10 +132,11 @@ Concretely:
 
 Rules for Claude when working with this file:
 
-- **Never** put a client secret, connection string, API key, or client secret value inside `tenant.json` or anywhere in `/config`. Those are IDs and references only.
-- Secrets are pulled at runtime from **that client's Key Vault**, referenced via Managed Identity — never via a static key checked into config or code.
-- The app must read `CLIENT_ID` at startup, load the matching `config/{CLIENT_ID}/tenant.json`, and fail loudly (not silently fall back) if the config is missing or malformed.
-- Code must never hardcode a specific client's ID, name, workspace ID, or any other client-specific value anywhere outside `/config`. If you catch yourself writing a client name in a component, stop — that value belongs in config.
+- **Never** put a client secret, connection string, API key, or client secret value in the config document. Those are IDs and references only. A guard in `tenant-config.ts` refuses to load a document containing a secret-shaped key, and it runs on save as well as on load.
+- The app resolves `CLIENT_ID` from the environment, fetches that client's document, and **fails loudly** if it is missing or malformed. There is deliberately **no fallback** to a file in the repo: a deployment with no config must stop, not quietly serve defaults or another client's settings.
+- Config is cached in memory for `CONFIG_CACHE_TTL_SECONDS` (default 30). Each serving instance caches independently, so after an admin writes, other warm instances may serve the previous config until their window lapses. That staleness is bounded and accepted — do not build cross-instance invalidation for it.
+- **Seeding is explicit and one-off** (`npm run seed-config`). It refuses to overwrite an existing document without `--force`, so it cannot silently discard what an admin changed through the portal.
+- Code must never hardcode a specific client's ID, name, workspace ID, or any other client-specific value anywhere outside config. If you catch yourself writing a client name in a component, stop — that value belongs in config.
 
 ---
 
@@ -136,7 +150,14 @@ npm run build                    # production build (no CLIENT_ID needed — see
 npm run start                    # serve the build; needs CLIENT_ID
 npm run lint                     # eslint
 npm run typecheck                # tsc --noEmit
+
+npm run seed-config -- ./config/kestrelbrook/tenant.json   # seed the store
+npm run seed-config -- ./config/kestrelbrook/tenant.json --force
 ```
+
+The app will not start until its client config has been seeded and the store is
+reachable — that is the fail-loud behaviour working, not a bug. Locally that
+means `BLOB_READ_WRITE_TOKEN` in `.env.local` (`vercel env pull .env.local`).
 
 - **`CLIENT_ID` is required to run, not to build.** The app fails loudly at startup
   without it (§3). `config/kestrelbrook/` is a placeholder client for local development —
@@ -161,13 +182,44 @@ public/                          nuiq-logo.png, nuaig-logo.svg, nuaig-logo-white
 src/app/page.tsx                 Home hub (Tab 1) — animated hero + section cards
 src/app/                         root layout = the shell; one folder per tab (§5)
 src/components/                  TopNav, Footer, PageShell
-src/lib/tenant-config.ts         CLIENT_ID -> tenant.json loader, validation, fail-loud
+src/lib/tenant-config.ts         CLIENT_ID -> config document, validation, fail-loud
 src/lib/navigation.ts            the four tabs, fixed order, config-driven visibility
 src/lib/session.ts               signed-in user + delegated Power BI token
-src/lib/dashboard-store.ts       config + runtime dashboard merge (see §5 Tab 2)
-src/app/dashboards/manage/       admin add/remove screen — NOT yet role-gated
-data/{CLIENT_ID}/               runtime store, gitignored, ephemeral on Azure
+src/lib/config-store/            ConfigStore interface + provider adapters (§3)
+src/lib/dashboard-store.ts       dashboards derived from config (see §5 Tab 2)
+src/lib/admin.ts                 who may administer this deployment (§6)
+src/app/dashboards/manage/       admin add/remove screen, role-gated
+scripts/seed-config.ts           one-off seeding of a client's config document
 ```
+
+---
+
+## 3b. Hosting: where this actually runs today
+
+**Vercel is the current host, for the demo phase.** Azure Container Apps + Key
+Vault + Managed Identity (§4, §7) remains the target for real production client
+deployments — that decision is not reversed, it is deferred.
+
+Accepted departures while on Vercel, all deliberate:
+
+- **Secrets are Vercel project environment variables**, not Key Vault via
+  Managed Identity. Vercel has no managed identity, so `AUTH_SECRET`,
+  `ENTRA_CLIENT_SECRET` and the store token are static env vars. This is an
+  accepted trade for the demo phase, **not** a new standard: a production client
+  deployment goes back to Key Vault. Secrets still never enter the repo.
+- **No storage versioning.** Vercel Blob does not support it natively, and the
+  demo does not need it. Revisit when a production client moves to Azure Blob,
+  where container-level versioning would make a bad config edit recoverable.
+- **Preview deployments are unauthenticated.** Each preview gets a unique URL and
+  Entra will not have it registered, so sign-in cannot work there. Do not build
+  anything to work around this; use the stable production URL to test auth.
+
+**Open — decide before any production client goes live: HIPAA / BAA posture.**
+No PHI flows through NuIQ today (Power BI embedding happens in the browser under
+the user's own identity, and the config document holds only identifiers), so
+this is not blocking now. It is also not resolved: Vercel offers a BAA only on
+its Enterprise tier, and §2 says design as if HIPAA applies. Answer this
+deliberately rather than discovering it during a compliance review.
 
 ---
 
@@ -304,22 +356,19 @@ service principal for Power BI and never asserts an identity on a user's behalf.
   navigation was fine. The route also sets `dynamic = "force-dynamic"` at page
   level to stop static-path collection. Never add `generateStaticParams` here: it
   flips the route to SSG. Never import `PowerBiReportView` directly.
-- **Dashboards come from two places, merged.** `tenant.json` is the baseline that
-  ships with the deployment; `data/{CLIENT_ID}/dashboards.json` holds what an
-  admin added or hid at runtime. tenant.json is never written to — it stays
-  config-as-code (§3). A config-sourced dashboard cannot be deleted at runtime,
-  only hidden, and hiding is reversible.
+- **Dashboards live in the client's config document** (§3), which is editable at
+  runtime — so there is one list, not a shipped baseline plus an overlay. Adding
+  or removing a dashboard edits that document and takes effect without a
+  redeploy.
 - **Each dashboard carries its own `workspaceId`**, so one portal can show
   reports from several Fabric/Power BI workspaces. It falls back to
   `powerBi.workspaceId` when absent.
-- **The runtime store is a local JSON file and an Azure Container App's disk is
-  ephemeral.** Runtime edits are lost on revision restart or scale-to-zero.
-  Before this is relied on in production, back `dashboard-store.ts` with durable
-  storage — its interface is the only thing that should need to change.
-- **`/dashboards/manage` is not yet access-controlled.** It requires a signed-in
-  user and nothing more. Managing what a whole organization sees is an admin's
-  job and must be gated on an admin role server-side before production (§6);
-  hiding the link is not access control.
+- **Writes are conditional.** `saveTenantConfig` passes the etag the document was
+  read at; a concurrent edit raises `ConfigConflictError`, which the UI surfaces
+  so the admin can reload and reapply. Never write unconditionally to "fix" a
+  conflict — that discards someone else's change.
+- **`/dashboards/manage` is gated on `ADMIN_EMAILS`**, enforced server-side in
+  the actions (§6). Do not rely on the page hiding its controls.
 - `facilityFilterField` is informational only. The filtering is enforced by RLS in
   the semantic model, not by anything NuIQ sends.
 
@@ -352,6 +401,7 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 - On sign-in, resolve the user's facility scope (organization/region/community/unit) from their Entra ID group membership or a mapping table — this scope must be attached to the session and checked on every data-fetching call, not just used to filter the UI. **Not yet built** (`src/lib/session.ts`): Tab 2 does not need it, because Power BI scopes against the user's own identity, but Tabs 1 and 3 read the warehouse and must not ship without it.
 - Sign-in requests delegated Power BI scopes (`Report.Read.All`, `Dataset.Read.All`, `Workspace.Read.All`) alongside the OIDC scopes, so the same session can load dashboards as the user. These need admin consent on the app registration.
 - Missing auth environment values degrade to a signed-out app with a visible notice, never a 500 on every page. See `isAuthConfigured()`.
+- **Administration is gated on `ADMIN_EMAILS`** (comma-separated, per deployment) and checked server-side in every mutating action, not just in the page. It **fails closed**: an empty list means nobody is an admin. This is a deployment-time list, not a directory role — the production form is an Entra app role or group claim resolved at sign-in. Replace it, do not extend it.
 - No client-side-only access control. Any RBAC check that matters must also be enforced server-side (API routes, Power BI RLS, warehouse query scoping).
 
 ---

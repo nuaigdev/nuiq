@@ -1,8 +1,8 @@
 import "server-only";
 
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { z } from "zod";
+
+import { getConfigStore } from "./config-store";
 
 /**
  * Loads the running deployment's client config (CLAUDE.md §3).
@@ -118,81 +118,142 @@ function assertNoSecrets(value: unknown, trail: string[] = []): void {
   }
 }
 
-function loadTenantConfig(): TenantConfig {
+/** How long a loaded config is reused before re-reading the store. */
+function cacheTtlMs(): number {
+  const configured = Number(process.env.CONFIG_CACHE_TTL_SECONDS);
+  return Number.isFinite(configured) && configured >= 0
+    ? configured * 1000
+    : 30_000;
+}
+
+/** The client this deployment serves. Resolved from the environment, never from a request. */
+export function getClientId(): string {
   const clientId = process.env.CLIENT_ID?.trim();
 
   if (!clientId) {
     throw new Error(
-      "[NuIQ config] Refusing to start: CLIENT_ID is not set. Each deployment serves exactly " +
-        "one client and resolves it from this env var at startup (CLAUDE.md §3). " +
-        "For local development: CLIENT_ID=kestrelbrook npm run dev",
+      "[NuIQ config] Refusing to start: CLIENT_ID is not set. Each deployment " +
+        "serves exactly one client and resolves it from this env var at startup " +
+        "(CLAUDE.md §3).",
     );
   }
 
-  // CLIENT_ID becomes a path segment; keep it to a safe slug so it can never
-  // escape /config, even though it is operator-set rather than user-supplied.
+  // CLIENT_ID becomes a storage key segment; keep it to a safe slug so it can
+  // never traverse outside this client's prefix, even though it is operator-set
+  // rather than user-supplied.
   if (!/^[a-z0-9][a-z0-9-]*$/.test(clientId)) {
     throw new Error(
-      `[NuIQ config] Refusing to start: CLIENT_ID "${clientId}" is not a valid client slug ` +
-        `(lowercase letters, digits and hyphens only).`,
+      `[NuIQ config] Refusing to start: CLIENT_ID "${clientId}" is not a valid ` +
+        `client slug (lowercase letters, digits and hyphens only).`,
     );
   }
 
-  const configPath = path.join(process.cwd(), "config", clientId, "tenant.json");
+  return clientId;
+}
 
-  let raw: string;
-  try {
-    raw = readFileSync(configPath, "utf8");
-  } catch {
-    throw new Error(
-      `[NuIQ config] Refusing to start: no config found for CLIENT_ID "${clientId}" ` +
-        `(looked for ${configPath}).`,
-    );
-  }
+/**
+ * Validates a raw configuration document.
+ *
+ * Exported so the seed script and admin writes run exactly the same checks a
+ * boot does — config that would fail to load must fail to save.
+ */
+export function parseTenantConfig(
+  raw: unknown,
+  clientId: string,
+  origin: string,
+): TenantConfig {
+  assertNoSecrets(raw);
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (error) {
-    throw new Error(
-      `[NuIQ config] Refusing to start: ${configPath} is not valid JSON — ` +
-        `${(error as Error).message}`,
-    );
-  }
-
-  assertNoSecrets(parsed);
-
-  const result = tenantConfigSchema.safeParse(parsed);
+  const result = tenantConfigSchema.safeParse(raw);
   if (!result.success) {
     const issues = result.error.issues
       .map((issue) => `  - ${issue.path.join(".") || "(root)"}: ${issue.message}`)
       .join("\n");
     throw new Error(
-      `[NuIQ config] Refusing to start: ${configPath} is malformed.\n${issues}`,
+      `[NuIQ config] Configuration at ${origin} is malformed.
+${issues}`,
     );
   }
 
   if (result.data.clientId !== clientId) {
     throw new Error(
-      `[NuIQ config] Refusing to start: CLIENT_ID is "${clientId}" but ` +
-        `${configPath} declares clientId "${result.data.clientId}".`,
+      `[NuIQ config] CLIENT_ID is "${clientId}" but ${origin} declares ` +
+        `clientId "${result.data.clientId}".`,
     );
   }
 
   return result.data;
 }
 
-let cached: TenantConfig | undefined;
+export type LoadedTenantConfig = { config: TenantConfig; etag: string };
 
-/** The current deployment's client config. Throws loudly if it is missing or invalid. */
-export function getTenantConfig(): TenantConfig {
-  // In production the config is immutable for the life of the deployment, so it
-  // is read once. In development it is re-read on every call: otherwise editing
-  // tenant.json appears to do nothing until the server is restarted, which is a
-  // confusing way to lose ten minutes.
-  if (process.env.NODE_ENV !== "production") {
-    return loadTenantConfig();
+let cached: (LoadedTenantConfig & { loadedAt: number }) | undefined;
+
+async function loadTenantConfig(): Promise<LoadedTenantConfig> {
+  const clientId = getClientId();
+  const stored = await getConfigStore().read(clientId);
+
+  // Fail loudly. A deployment whose config is absent must not quietly serve
+  // defaults or another client's settings (CLAUDE.md §3).
+  if (!stored) {
+    throw new Error(
+      `[NuIQ config] Refusing to start: no configuration found for CLIENT_ID ` +
+        `"${clientId}" in the configured store. Seed it first ` +
+        `(\`npm run seed-config\`) — there is deliberately no fallback.`,
+    );
   }
-  cached ??= loadTenantConfig();
-  return cached;
+
+  const config = parseTenantConfig(
+    stored.config,
+    clientId,
+    `the configuration store (client "${clientId}")`,
+  );
+
+  return { config, etag: stored.etag };
+}
+
+/**
+ * This deployment's client config, with its version tag.
+ *
+ * Cached in memory for a short window so a page render does not re-fetch per
+ * component. Each serving instance caches independently, so after an admin
+ * writes, other warm instances can serve the previous config until their window
+ * lapses. That staleness is bounded by CONFIG_CACHE_TTL_SECONDS and accepted.
+ */
+export async function getTenantConfigWithEtag(): Promise<LoadedTenantConfig> {
+  if (cached && Date.now() - cached.loadedAt < cacheTtlMs()) {
+    return { config: cached.config, etag: cached.etag };
+  }
+
+  const loaded = await loadTenantConfig();
+  cached = { ...loaded, loadedAt: Date.now() };
+  return loaded;
+}
+
+/** This deployment's client config. Throws loudly if missing or invalid. */
+export async function getTenantConfig(): Promise<TenantConfig> {
+  return (await getTenantConfigWithEtag()).config;
+}
+
+/** Drop the memoised config so the next read goes to the store. */
+export function invalidateTenantConfig(): void {
+  cached = undefined;
+}
+
+/**
+ * Persists an updated configuration.
+ *
+ * Validated before writing, and written conditionally: if the stored copy moved
+ * on since `etag` was read, the store raises a conflict rather than discarding
+ * whoever wrote in between.
+ */
+export async function saveTenantConfig(
+  config: TenantConfig,
+  etag: string,
+): Promise<void> {
+  const clientId = getClientId();
+  parseTenantConfig(config, clientId, "the submitted configuration");
+
+  await getConfigStore().write(clientId, config, etag);
+  invalidateTenantConfig();
 }

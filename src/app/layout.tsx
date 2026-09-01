@@ -31,7 +31,7 @@ const inter = Inter({
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const config = getTenantConfig();
+  const config = await getTenantConfig();
   return {
     title: {
       default: `NuIQ — ${config.displayName}`,
@@ -45,7 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const config = getTenantConfig();
+  const config = await getTenantConfig();
 
   return (
     <html lang="en" className={inter.variable}>

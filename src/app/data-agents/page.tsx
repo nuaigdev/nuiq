@@ -3,8 +3,8 @@ import { getTenantConfig } from "@/lib/tenant-config";
 
 export const metadata = { title: "Data Agents" };
 
-export default function DataAgentsPage() {
-  const { fabricDataAgents } = getTenantConfig();
+export default async function DataAgentsPage() {
+  const { fabricDataAgents } = await getTenantConfig();
 
   return (
     <PageShell

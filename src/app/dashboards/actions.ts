@@ -1,72 +1,40 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
+import { checkAdmin } from "@/lib/admin";
+import { ConfigConflictError } from "@/lib/config-store";
 import {
   addDashboard,
+  dashboardInputSchema,
   removeDashboard,
-  restoreDashboard,
 } from "@/lib/dashboard-store";
-import { getSession } from "@/lib/session";
-import { getTenantConfig } from "@/lib/tenant-config";
 
 /**
  * Admin actions for Tab 2's dashboard list.
  *
- * TODO(rbac): these currently require only a signed-in user. Managing which
- * dashboards a whole organization sees is an administrator's job, and this must
- * be gated on an admin role resolved from Entra group membership before it goes
- * anywhere near production (CLAUDE.md §6). The check belongs here, server-side —
- * hiding the Manage screen in the UI is not access control.
+ * Every one of these checks admin rights server-side before touching anything.
+ * The Manage screen also hides its controls, but that is presentation — this is
+ * the enforcement (CLAUDE.md §6).
+ *
+ * Writes are conditional on the etag the config was read at, so two admins
+ * editing at once get a conflict they can act on rather than one silently
+ * losing their change.
  */
 
-const GUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
-const formSchema = z.object({
-  name: z.string().trim().min(1, "Give the dashboard a name."),
-  workspaceId: z
-    .string()
-    .trim()
-    .regex(GUID, "Workspace ID must be a GUID."),
-  id: z.string().trim().regex(GUID, "Report ID must be a GUID."),
-  pageName: z
-    .string()
-    .trim()
-    .optional()
-    .transform((value) => (value ? value : undefined)),
-  thumbnailUrl: z
-    .string()
-    .trim()
-    .optional()
-    .transform((value) => (value ? value : undefined))
-    .refine(
-      (value) => value === undefined || z.string().url().safeParse(value).success,
-      "Preview image must be a URL.",
-    ),
-});
-
 export type ActionState = { error?: string; success?: string };
-
-async function requireAdmin(): Promise<string | undefined> {
-  const session = await getSession();
-  if (!session.isAuthenticated) {
-    return "Sign in to manage dashboards.";
-  }
-  return undefined;
-}
 
 export async function addDashboardAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const denied = await requireAdmin();
-  if (denied) return { error: denied };
+  const admin = await checkAdmin();
+  if (!admin.allowed) return { error: admin.reason };
 
-  const parsed = formSchema.safeParse({
+  const parsed = dashboardInputSchema.safeParse({
+    id: formData.get("id"),
     name: formData.get("name"),
     workspaceId: formData.get("workspaceId"),
-    id: formData.get("id"),
     pageName: formData.get("pageName"),
     thumbnailUrl: formData.get("thumbnailUrl"),
   });
@@ -75,27 +43,38 @@ export async function addDashboardAction(
     return { error: parsed.error.issues.map((issue) => issue.message).join(" ") };
   }
 
-  await addDashboard(getTenantConfig(), parsed.data);
-  revalidatePath("/dashboards", "layout");
+  try {
+    await addDashboard(parsed.data);
+  } catch (error) {
+    if (error instanceof ConfigConflictError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
+  revalidatePath("/", "layout");
   return { success: `Added “${parsed.data.name}”.` };
 }
 
-export async function removeDashboardAction(formData: FormData): Promise<void> {
-  if (await requireAdmin()) return;
+export async function removeDashboardAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const admin = await checkAdmin();
+  if (!admin.allowed) return { error: admin.reason };
 
   const reportId = String(formData.get("id") ?? "");
-  if (!reportId) return;
+  if (!reportId) return { error: "No dashboard specified." };
 
-  await removeDashboard(getTenantConfig(), reportId);
-  revalidatePath("/dashboards", "layout");
-}
+  try {
+    await removeDashboard(reportId);
+  } catch (error) {
+    if (error instanceof ConfigConflictError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
 
-export async function restoreDashboardAction(formData: FormData): Promise<void> {
-  if (await requireAdmin()) return;
-
-  const reportId = String(formData.get("id") ?? "");
-  if (!reportId) return;
-
-  await restoreDashboard(getTenantConfig(), reportId);
-  revalidatePath("/dashboards", "layout");
+  revalidatePath("/", "layout");
+  return { success: "Dashboard removed." };
 }

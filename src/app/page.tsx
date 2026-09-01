@@ -69,8 +69,8 @@ function SectionCard({
 }
 
 export default async function HomePage() {
-  const config = getTenantConfig();
-  const dashboards = await getDashboards(config);
+  const config = await getTenantConfig();
+  const dashboards = getDashboards(config);
 
   return (
     <div>

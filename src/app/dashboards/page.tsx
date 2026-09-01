@@ -11,8 +11,8 @@ export const metadata = { title: "Dashboards" };
  * loads the real report at /dashboards/[reportId] (CLAUDE.md §5 Tab 2).
  */
 export default async function DashboardsPage() {
-  const config = getTenantConfig();
-  const dashboards = await getDashboards(config);
+  const config = await getTenantConfig();
+  const dashboards = getDashboards(config);
 
   return (
     <div className="mx-auto max-w-[1600px] px-6 py-7">

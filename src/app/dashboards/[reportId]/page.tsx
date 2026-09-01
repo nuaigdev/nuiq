@@ -23,7 +23,7 @@ export async function generateMetadata({
   params: Promise<{ reportId: string }>;
 }) {
   const { reportId } = await params;
-  const dashboard = await findDashboard(getTenantConfig(), reportId);
+  const dashboard = findDashboard(await getTenantConfig(), reportId);
   return { title: dashboard?.name ?? "Dashboards" };
 }
 
@@ -57,9 +57,9 @@ export default async function ReportPage({
   params: Promise<{ reportId: string }>;
 }) {
   const { reportId } = await params;
-  const config = getTenantConfig();
+  const config = await getTenantConfig();
 
-  const dashboards = await getDashboards(config);
+  const dashboards = getDashboards(config);
   // Only dashboards this deployment knows about may be opened. A report id from
   // the URL never reaches Power BI unless it is in this list.
   const dashboard = dashboards.find((item) => item.id === reportId);

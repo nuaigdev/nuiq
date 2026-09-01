@@ -67,7 +67,7 @@ export function missingAuthEnv(): string[] {
  * "no access" — which is both wrong and impossible for the user to act on.
  */
 async function refreshAccessToken(token: JWT): Promise<JWT> {
-  const config = getTenantConfig();
+  const config = await getTenantConfig();
 
   if (!token.refreshToken) {
     return { ...token, error: "NoRefreshToken" };
@@ -113,8 +113,10 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth(() => {
-  const config = getTenantConfig();
+// NextAuth accepts an async config factory, so the client config can come from
+// the store rather than being duplicated into environment variables.
+export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
+  const config = await getTenantConfig();
 
   return {
     providers: [

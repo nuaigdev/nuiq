@@ -1,156 +1,130 @@
 import "server-only";
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { z } from "zod";
 
-import type { TenantConfig } from "./tenant-config";
+import {
+  getTenantConfigWithEtag,
+  saveTenantConfig,
+  type TenantConfig,
+} from "./tenant-config";
 
 /**
- * Dashboards shown in Tab 2 = the baseline list in tenant.json, plus anything
- * an admin has added at runtime, minus anything an admin has hidden.
+ * Dashboards shown in Tab 2.
  *
- * tenant.json stays config-as-code and is never written to (CLAUDE.md §3).
- * Runtime edits live in their own store so the two never fight: config is what
- * ships with the deployment, the store is what an operator changed afterwards.
- *
- * PERSISTENCE CAVEAT: the store is a JSON file on local disk. That is correct
- * for development, but an Azure Container App's filesystem is ephemeral — a
- * revision restart or scale-to-zero loses it. Before this is relied on in
- * production, back it with durable storage (Azure Storage, a database, or a
- * metadata table in the client's warehouse). The interface below is the only
- * thing that would need to change.
+ * These live in the client's configuration document, which is now itself
+ * editable at runtime — so there is no longer a "shipped baseline" to protect
+ * and no added/hidden overlay. One document, one etag, one list. Adding or
+ * removing a dashboard is an edit to that document, written conditionally so a
+ * concurrent edit is refused rather than silently discarded (CLAUDE.md §3).
  */
 
-const dashboardEntrySchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  workspaceId: z.string().min(1),
-  pageName: z.string().min(1).optional(),
-  thumbnailUrl: z.string().url().optional(),
+const GUID =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+export const dashboardInputSchema = z.object({
+  id: z.string().trim().regex(GUID, "Report ID must be a GUID."),
+  name: z.string().trim().min(1, "Give the dashboard a name."),
+  workspaceId: z.string().trim().regex(GUID, "Workspace ID must be a GUID."),
+  pageName: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  thumbnailUrl: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? value : undefined))
+    .refine(
+      (value) => value === undefined || z.string().url().safeParse(value).success,
+      "Preview image must be a URL.",
+    ),
 });
 
-const storeSchema = z.object({
-  added: z.array(dashboardEntrySchema).default([]),
-  hidden: z.array(z.string().min(1)).default([]),
-});
+export type DashboardInput = z.infer<typeof dashboardInputSchema>;
 
-export type DashboardEntry = z.infer<typeof dashboardEntrySchema>;
-type Store = z.infer<typeof storeSchema>;
-
-/** A dashboard as the UI sees it, with where it came from. */
-export type Dashboard = DashboardEntry & {
-  /** "config" entries come from tenant.json; "admin" ones were added at runtime. */
-  source: "config" | "admin";
+/** A dashboard as the UI sees it. */
+export type Dashboard = {
+  id: string;
+  name: string;
+  workspaceId: string;
+  pageName?: string;
+  thumbnailUrl?: string;
 };
 
-const EMPTY: Store = { added: [], hidden: [] };
-
-function storePath(clientId: string): string {
-  return path.join(process.cwd(), "data", clientId, "dashboards.json");
+/**
+ * The dashboards this deployment should show.
+ *
+ * Derived from config, so it needs no I/O of its own — the caller has already
+ * paid for the config read.
+ */
+export function getDashboards(config: TenantConfig): Dashboard[] {
+  return config.powerBi.reports.map((report) => ({
+    id: report.id,
+    name: report.name,
+    // Falls back to the workspace-wide id so a client whose reports all live
+    // together does not have to repeat it per report.
+    workspaceId: report.workspaceId ?? config.powerBi.workspaceId,
+    pageName: report.pageName,
+    thumbnailUrl: report.thumbnailUrl,
+  }));
 }
 
-async function readStore(clientId: string): Promise<Store> {
-  let raw: string;
-  try {
-    raw = await readFile(storePath(clientId), "utf8");
-  } catch {
-    return EMPTY;
-  }
-
-  try {
-    const parsed = storeSchema.safeParse(JSON.parse(raw));
-    // A corrupt store must not take the tab down — fall back to config-only and
-    // let the admin re-add. Losing runtime edits beats serving no dashboards.
-    return parsed.success ? parsed.data : EMPTY;
-  } catch {
-    return EMPTY;
-  }
-}
-
-async function writeStore(clientId: string, store: Store): Promise<void> {
-  const file = storePath(clientId);
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, `${JSON.stringify(store, null, 2)}\n`, "utf8");
-}
-
-/** The dashboards this deployment should show, config and runtime merged. */
-export async function getDashboards(config: TenantConfig): Promise<Dashboard[]> {
-  const store = await readStore(config.clientId);
-  const hidden = new Set(store.hidden);
-  const addedIds = new Set(store.added.map((entry) => entry.id));
-
-  const fromConfig: Dashboard[] = config.powerBi.reports
-    .filter((report) => !hidden.has(report.id) && !addedIds.has(report.id))
-    .map((report) => ({
-      id: report.id,
-      name: report.name,
-      workspaceId: report.workspaceId ?? config.powerBi.workspaceId,
-      pageName: report.pageName,
-      thumbnailUrl: report.thumbnailUrl,
-      source: "config",
-    }));
-
-  const fromAdmin: Dashboard[] = store.added
-    .filter((entry) => !hidden.has(entry.id))
-    .map((entry) => ({ ...entry, source: "admin" }));
-
-  return [...fromConfig, ...fromAdmin];
-}
-
-export async function findDashboard(
+export function findDashboard(
   config: TenantConfig,
   reportId: string,
-): Promise<Dashboard | undefined> {
-  const dashboards = await getDashboards(config);
-  return dashboards.find((dashboard) => dashboard.id === reportId);
+): Dashboard | undefined {
+  return getDashboards(config).find((dashboard) => dashboard.id === reportId);
 }
 
-export async function addDashboard(
-  config: TenantConfig,
-  entry: DashboardEntry,
-): Promise<void> {
-  const store = await readStore(config.clientId);
-  await writeStore(config.clientId, {
-    // Re-adding something previously hidden should bring it back.
-    hidden: store.hidden.filter((id) => id !== entry.id),
-    added: [...store.added.filter((item) => item.id !== entry.id), entry],
-  });
+/**
+ * Adds a dashboard, or updates one already present with the same report id.
+ *
+ * Reads the current document and writes it back against the etag it was read
+ * at, so two admins editing at once produce a conflict rather than a silent
+ * overwrite.
+ */
+export async function addDashboard(entry: DashboardInput): Promise<void> {
+  const { config, etag } = await getTenantConfigWithEtag();
+
+  const reports = config.powerBi.reports.filter(
+    (report) => report.id !== entry.id,
+  );
+
+  await saveTenantConfig(
+    {
+      ...config,
+      powerBi: {
+        ...config.powerBi,
+        reports: [
+          ...reports,
+          {
+            id: entry.id,
+            name: entry.name,
+            workspaceId: entry.workspaceId,
+            pageName: entry.pageName,
+            thumbnailUrl: entry.thumbnailUrl,
+          },
+        ],
+      },
+    },
+    etag,
+  );
 }
 
-export async function removeDashboard(
-  config: TenantConfig,
-  reportId: string,
-): Promise<void> {
-  const store = await readStore(config.clientId);
-  const wasAdded = store.added.some((entry) => entry.id === reportId);
+export async function removeDashboard(reportId: string): Promise<void> {
+  const { config, etag } = await getTenantConfigWithEtag();
 
-  await writeStore(config.clientId, {
-    added: store.added.filter((entry) => entry.id !== reportId),
-    // A config-sourced dashboard cannot be deleted from tenant.json at runtime,
-    // so record it as hidden instead.
-    hidden: wasAdded ? store.hidden : [...new Set([...store.hidden, reportId])],
-  });
-}
-
-/** Config-sourced dashboards an admin has hidden, so they can be restored. */
-export async function getHiddenConfigDashboards(
-  config: TenantConfig,
-): Promise<{ id: string; name: string }[]> {
-  const store = await readStore(config.clientId);
-  const hidden = new Set(store.hidden);
-  return config.powerBi.reports
-    .filter((report) => hidden.has(report.id))
-    .map((report) => ({ id: report.id, name: report.name }));
-}
-
-export async function restoreDashboard(
-  config: TenantConfig,
-  reportId: string,
-): Promise<void> {
-  const store = await readStore(config.clientId);
-  await writeStore(config.clientId, {
-    ...store,
-    hidden: store.hidden.filter((id) => id !== reportId),
-  });
+  await saveTenantConfig(
+    {
+      ...config,
+      powerBi: {
+        ...config.powerBi,
+        reports: config.powerBi.reports.filter(
+          (report) => report.id !== reportId,
+        ),
+      },
+    },
+    etag,
+  );
 }

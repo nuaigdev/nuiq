@@ -15,8 +15,8 @@ const DISPLAY_LABELS: Record<string, string> = {
   "link-card": "Opens externally",
 };
 
-export default function AiAgentsPage() {
-  const { agents } = getTenantConfig();
+export default async function AiAgentsPage() {
+  const { agents } = await getTenantConfig();
 
   return (
     <PageShell
