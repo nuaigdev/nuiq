@@ -1,37 +1,45 @@
 import "server-only";
 
-import type { TenantConfig } from "./tenant-config";
+import { auth, isAuthConfigured } from "./auth";
 
 /**
- * Facility scope for the signed-in user (CLAUDE.md §2, §6).
+ * The signed-in user (CLAUDE.md §6).
  *
- * TODO(auth): this is a placeholder. Real scope must be resolved at sign-in from
- * the user's Entra ID group membership (or the mapping table), attached to the
- * NextAuth session, and enforced on every data-fetching call — not just used to
- * label the UI. Nothing below may be trusted for authorization.
+ * Facility scope is NOT resolved here yet. For Power BI, scoping is enforced by
+ * row-level security in the semantic model against the user's own Power BI
+ * identity, so dashboards are correctly scoped without NuIQ asserting anything.
+ *
+ * TODO(scope): warehouse-backed features (Tab 1 detail, Tab 3 data agents) still
+ * need the organization/region/community/unit scope resolved from Entra group
+ * membership and enforced server-side. Do not treat a signed-in session as
+ * authorization for those until that exists.
  */
 
-export type FacilityScope = {
-  /** Hierarchy level this user's access is rooted at, from orgHierarchy.levels. */
-  level: string;
-  /** Human-readable name of the scope root, for display in the shell. */
-  label: string;
-  /** How many communities the scope covers, so a reader can size an aggregate. */
-  communityCount: number;
-};
-
 export type AppSession = {
-  userName: string;
-  scope: FacilityScope;
+  isAuthenticated: boolean;
+  userName?: string;
+  email?: string;
+  /** Delegated Power BI token. Server-side only — never send this to the client. */
+  powerBiToken?: string;
 };
 
-export async function getSession(config: TenantConfig): Promise<AppSession> {
+export async function getSession(): Promise<AppSession> {
+  // Never call auth() before the environment can support it — without a secret
+  // NextAuth throws, which would take down every page rather than just sign-in.
+  if (!isAuthConfigured()) {
+    return { isAuthenticated: false };
+  }
+
+  const session = await auth();
+
+  if (!session?.user) {
+    return { isAuthenticated: false };
+  }
+
   return {
-    userName: "Signed-out preview",
-    scope: {
-      level: config.orgHierarchy.levels[0] ?? "organization",
-      label: config.displayName,
-      communityCount: 0,
-    },
+    isAuthenticated: true,
+    userName: session.user.name ?? undefined,
+    email: session.user.email ?? undefined,
+    powerBiToken: session.powerBiToken,
   };
 }

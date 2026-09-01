@@ -130,7 +130,8 @@ Rules for Claude when working with this file:
 
 ```bash
 npm install
-CLIENT_ID=example npm run dev    # http://localhost:3000
+cp .env.example .env.local       # then fill AUTH_SECRET and ENTRA_CLIENT_SECRET
+npm run dev                      # http://localhost:3000 (reads .env.local)
 npm run build                    # production build (no CLIENT_ID needed — see below)
 npm run start                    # serve the build; needs CLIENT_ID
 npm run lint                     # eslint
@@ -138,7 +139,7 @@ npm run typecheck                # tsc --noEmit
 ```
 
 - **`CLIENT_ID` is required to run, not to build.** The app fails loudly at startup
-  without it (§3). `config/example/` is a placeholder client for local development —
+  without it (§3). `config/kestrelbrook/` is a placeholder client for local development —
   it is not a real client, and no real client config belongs in the repo.
 - **Every route is `force-dynamic`, set in the root layout — do not remove it.** One
   container image is built once and deployed per client, each with its own
@@ -197,6 +198,16 @@ Every page renders inside one persistent shell: **top-level navigation panel** a
 - **The nav is presentation, not access control.** Hiding or omitting a nav item is never a substitute for the server-side checks in §6 — if a user shouldn't reach a route, the route itself must refuse them, not merely lack a link.
 - Surface the signed-in user's current **facility scope** (§2) in the shell, so it's always clear which organization/region/community the numbers on screen represent. A user with scope over multiple communities viewing a census figure must be able to tell what it covers without leaving the page.
 
+### Secondary routes
+
+Not everything is a tab. `/about` (NuIQ and NuAIg background) is reached from the
+footer, deliberately **not** from the top nav — the nav carries exactly the four
+core destinations and adding a fifth would dilute it. Future secondary pages
+(help, release notes, support) belong in the footer too.
+
+Anything stated about NuAIg on `/about` must be sourced from nuaig.ai. Do not add
+claims, metrics, leadership names, or client names that are not verifiable there.
+
 ### Tab 1 — Data Model & Flow (animated)
 
 Purpose: give a non-technical viewer an intuitive, moving picture of how data flows from source systems through the warehouse.
@@ -213,9 +224,27 @@ Do not attempt to build a general-purpose lineage crawler comparable to Purview 
 
 ### Tab 2 — Power BI Dashboards
 
-- Reports are embedded (`powerbi-client-react`), not just linked, using server-side minted embed tokens via the Power BI REST API.
-- Row-level security must be applied per the logged-in user's facility scope (see §2 hierarchy) — a user should never be able to see another community's data by manipulating filters client-side.
-- Report list, workspace ID, and per-report facility-filter field all come from `tenant.json` — never hardcoded.
+**Identity model: user-owns-data.** Reports are embedded with the *signed-in
+user's own* Entra token (`powerbi-client-react`, `tokenType: Aad`). Power BI
+applies that person's permissions and row-level security directly. NuIQ holds no
+service principal for Power BI and never asserts an identity on a user's behalf.
+
+- **A user who lacks Power BI access sees nothing.** That is the intended
+  behaviour, not a bug to work around: access is administered in Power BI, not in
+  NuIQ. Every viewer therefore needs Power BI access and a licence (Free works
+  only on an F64+ capacity; otherwise Pro or PPU).
+- **Do not reintroduce a service principal / app-owns-data flow** to avoid those
+  licences. It was considered and rejected: it means NuIQ mints tokens asserting
+  who the user is, holds a secret that can read every community's data, and
+  requires the RLS roles to be correct for that assertion to be safe.
+- **Do not use "Publish to web".** It produces an embed URL that needs no
+  authentication at all and is readable by anyone with the link — an outright
+  exposure of census, falls, and incident data.
+- Report list and workspace ID come from `tenant.json`; never hardcoded. A report
+  id arriving in a URL must be matched against that config before it is passed to
+  Power BI (`findReport`), so a user cannot request arbitrary reports.
+- `facilityFilterField` is informational only. The filtering is enforced by RLS in
+  the semantic model, not by anything NuIQ sends.
 
 ### Tab 3 — Fabric Data Agents
 
@@ -243,7 +272,9 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 ## 6. Auth & access control
 
 - NextAuth.js + Entra ID provider, single-tenant app registration per deployment.
-- On sign-in, resolve the user's facility scope (organization/region/community/unit) from their Entra ID group membership or a mapping table — this scope must be attached to the session and checked on every data-fetching call, not just used to filter the UI.
+- On sign-in, resolve the user's facility scope (organization/region/community/unit) from their Entra ID group membership or a mapping table — this scope must be attached to the session and checked on every data-fetching call, not just used to filter the UI. **Not yet built** (`src/lib/session.ts`): Tab 2 does not need it, because Power BI scopes against the user's own identity, but Tabs 1 and 3 read the warehouse and must not ship without it.
+- Sign-in requests delegated Power BI scopes (`Report.Read.All`, `Dataset.Read.All`, `Workspace.Read.All`) alongside the OIDC scopes, so the same session can load dashboards as the user. These need admin consent on the app registration.
+- Missing auth environment values degrade to a signed-out app with a visible notice, never a 500 on every page. See `isAuthConfigured()`.
 - No client-side-only access control. Any RBAC check that matters must also be enforced server-side (API routes, Power BI RLS, warehouse query scoping).
 
 ---
@@ -263,6 +294,7 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 - The NuIQ mark (`/public/nuiq-logo.png`, the origami peak) is the app's logo and the only logo used for the app itself — header/nav, favicon, loading/empty states, social preview. Per-client branding (`branding.primaryColor`, `branding.clientLogoUrl` in `tenant.json`) may customize accent color and optionally show a client logo alongside NuIQ's — but never replace the NuIQ mark or the NuAIg footer credit.
 - **Asset placement is fixed.** All three logos live in `/public` and are referenced by absolute path (`/nuiq-logo.png`, `/nuaig-logo.svg`, `/nuaig-logo-white.svg`) — do not copy them into `src/`, inline them as base64, or import them as modules.
 - The NuAIg wordmark's accent color is `#069BDF` (the only color that differs from the wordmark fill between the light and dark logo variants). It belongs to the NuAIg mark itself and stays in the footer with it — do not adopt it as a NuIQ accent. NuIQ's own palette stays in the deep indigo/blue facet family of `/public/nuiq-logo.png`.
+- **The NuIQ wordmark carries a gradient; the mark never does.** The word "NuIQ" in the header and footer is rendered with a restrained white -> light blue -> indigo gradient (`bg-clip-text`). This is a deliberate, approved exception to the "no gradients" rule below, and applies to the *text* only — the origami mark PNG stays flat and untouched. Do not extend gradients to the mark, to backgrounds, or to UI chrome.
 - Keep the visual language consistent with the origami mark's aesthetic: flat, precise, geometric, restrained color palette (deep indigo/blue family). Avoid generic dashboard-template visual clichés (bar-chart iconography, glowing gradients, stock "AI brain" imagery) anywhere in the product UI, not just the logo.
 
 ---

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
+import { AuthControls } from "@/components/AuthControls";
 import { Footer } from "@/components/Footer";
 import { TopNav } from "@/components/TopNav";
 import { getDefaultRoute, getNavItems } from "@/lib/navigation";
-import { getSession } from "@/lib/session";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 import "./globals.css";
@@ -39,7 +39,6 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const config = getTenantConfig();
-  const session = await getSession(config);
 
   return (
     <html lang="en">
@@ -56,8 +55,7 @@ export default async function RootLayout({
           defaultRoute={getDefaultRoute(config)}
           clientName={config.displayName}
           clientLogoUrl={config.branding.clientLogoUrl || undefined}
-          scopeLabel={session.scope.label}
-          scopeLevel={session.scope.level}
+          authControls={<AuthControls />}
         />
         <main className="flex-1">{children}</main>
         <Footer />

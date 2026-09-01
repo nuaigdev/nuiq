@@ -18,8 +18,18 @@ const DISPLAY_MODES = ["chat-panel", "iframe", "link-card"] as const;
 const powerBiReportSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  facilityFilterField: z.string().min(1),
-});
+  /**
+   * Report page (section) to open on, e.g. "bcb646c3f4e6fe1a7859". Optional —
+   * omit to open the report's default page.
+   */
+  pageName: z.string().min(1).optional(),
+  /**
+   * The model field that scopes this report to a community. Informational —
+   * filtering is enforced by row-level security in the semantic model against
+   * the signed-in user's own Power BI identity, not by anything NuIQ passes.
+   */
+  facilityFilterField: z.string().min(1).optional(),
+})
 
 const fabricDataAgentSchema = z.object({
   id: z.string().min(1),
@@ -103,7 +113,7 @@ function loadTenantConfig(): TenantConfig {
     throw new Error(
       "[NuIQ config] Refusing to start: CLIENT_ID is not set. Each deployment serves exactly " +
         "one client and resolves it from this env var at startup (CLAUDE.md §3). " +
-        "For local development: CLIENT_ID=example npm run dev",
+        "For local development: CLIENT_ID=kestrelbrook npm run dev",
     );
   }
 

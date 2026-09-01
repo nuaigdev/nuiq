@@ -1,26 +1,17 @@
 {
-  "clientId": "example",
-  "displayName": "Example Senior Living Group",
-  "entraTenantId": "00000000-0000-0000-0000-000000000000",
-  "entraClientId": "00000000-0000-0000-0000-000000000000",
-  "fabricWorkspaceId": "00000000-0000-0000-0000-000000000000",
-  "warehouseSqlEndpoint": "example.datawarehouse.fabric.microsoft.com",
+  "clientId": "kestrelbrook",
+  "displayName": "Kestrelbrook Senior Living",
+  "entraTenantId": "384fb6b6-07ad-49c4-aba7-27f8bd3cb019",
+  "entraClientId": "634e34f7-cf2d-4312-9888-e53003d8eed3",
+  "fabricWorkspaceId": "6a6289d0-1982-47f9-9787-28d550b5b89a",
+  "warehouseSqlEndpoint": "kestrelbrook.datawarehouse.fabric.microsoft.com",
   "powerBi": {
-    "workspaceId": "00000000-0000-0000-0000-000000000000",
+    "workspaceId": "6a6289d0-1982-47f9-9787-28d550b5b89a",
     "reports": [
       {
-        "id": "00000000-0000-0000-0000-000000000001",
-        "name": "Occupancy & Census",
-        "facilityFilterField": "CommunityId"
-      },
-      {
-        "id": "00000000-0000-0000-0000-000000000002",
-        "name": "Falls & Incidents",
-        "facilityFilterField": "CommunityId"
-      },
-      {
-        "id": "00000000-0000-0000-0000-000000000003",
-        "name": "Staffing & Ratios",
+        "id": "5ef8559f-b8c2-47c4-a618-0fbbb5c5b234",
+        "name": "Dashboard",
+        "pageName": "bcb646c3f4e6fe1a7859",
         "facilityFilterField": "CommunityId"
       }
     ]
@@ -44,24 +35,29 @@
       "type": "foundry",
       "name": "Quality Insights Agent",
       "display": "chat-panel",
-      "endpoint": "https://example.services.ai.azure.com/api/projects/example",
+      "endpoint": "https://kestrelbrook.services.ai.azure.com/api/projects/kestrelbrook",
       "agentId": "asst_example"
     },
     {
       "type": "copilot-studio",
       "name": "Care Ops Assistant",
       "display": "chat-panel",
-      "embedUrl": "https://copilotstudio.microsoft.com/environments/example/bots/example/webchat"
+      "embedUrl": "https://copilotstudio.microsoft.com/environments/kestrelbrook/bots/care-ops/webchat"
     },
     {
       "type": "power-platform",
       "name": "Incident Intake",
       "display": "iframe",
-      "appUrl": "https://apps.powerapps.com/play/e/example/a/example"
+      "appUrl": "https://apps.powerapps.com/play/e/kestrelbrook/a/incident-intake"
     }
   ],
   "orgHierarchy": {
-    "levels": ["organization", "region", "community", "unit"]
+    "levels": [
+      "organization",
+      "region",
+      "community",
+      "unit"
+    ]
   },
   "branding": {
     "primaryColor": "#1E3A8A",
