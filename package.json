@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "seed-config": "dotenv -e .env.local -- tsx scripts/seed-config.ts"
+    "seed-config": "dotenv -e .env.local -- tsx --conditions=react-server scripts/seed-config.ts"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",

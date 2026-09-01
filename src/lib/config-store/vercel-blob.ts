@@ -26,8 +26,11 @@ import {
  * conditional write below by handing out a stale etag.
  *
  * Authentication is the store's own token (BLOB_READ_WRITE_TOKEN), injected by
- * Vercel. Nothing about this file is specific to how the app is hosted beyond
- * that token.
+ * Vercel. It is passed to every call explicitly rather than left to the SDK's
+ * ambient lookup: when VERCEL_OIDC_TOKEN is also present — `vercel link` writes
+ * one into .env.local — the SDK prefers OIDC, which fails with 403 in any
+ * environment where OIDC is not enabled. Passing `token` takes priority over
+ * both and makes the credential deterministic.
  */
 
 const DEFAULT_PREFIX = "clients";
@@ -38,7 +41,9 @@ function pathnameFor(clientId: string): string {
 }
 
 export function createVercelBlobStore(): ConfigStore {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+
+  if (!token) {
     throw new ConfigStoreError(
       'CONFIG_STORE_PROVIDER is "vercel-blob" but BLOB_READ_WRITE_TOKEN is not ' +
         "set. Link a Blob store to this project (Vercel injects the token), or " +
@@ -52,7 +57,11 @@ export function createVercelBlobStore(): ConfigStore {
 
       let result;
       try {
-        result = await get(pathname, { access: "private", useCache: false });
+        result = await get(pathname, {
+          access: "private",
+          useCache: false,
+          token,
+        });
       } catch (error) {
         if (error instanceof BlobNotFoundError) return null;
         throw new ConfigStoreError(
@@ -99,6 +108,7 @@ export function createVercelBlobStore(): ConfigStore {
       try {
         const result = await put(pathname, body, {
           access: "private",
+          token,
           contentType: "application/json",
           // The pathname is the identity of the document; a random suffix would
           // make it unfindable on the next read.

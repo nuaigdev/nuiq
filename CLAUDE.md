@@ -216,6 +216,15 @@ Accepted departures while on Vercel, all deliberate:
   `ENOENT ... .next/next-server.js.nft.json`. Standalone stays on for every other
   target, because the Azure Container Apps Dockerfile needs it. Do not remove
   either branch.
+- **The Blob token is passed explicitly on every call.** `vercel link` writes a
+  `VERCEL_OIDC_TOKEN` into `.env.local`, and the Blob SDK prefers OIDC over
+  `BLOB_READ_WRITE_TOKEN` when both are present — which fails with 403 in any
+  environment where OIDC is not enabled (development, by default). Passing
+  `token` takes priority over both. Do not fall back to the SDK's ambient lookup.
+- **Environment variables reach a deployment at build time, not request time.**
+  Adding one to the project does nothing for deployments already built — they
+  must be redeployed. A 500 naming a variable that *is* set in project settings
+  almost always means the deployment predates it.
 - **Preview deployments are unauthenticated.** Each preview gets a unique URL and
   Entra will not have it registered, so sign-in cannot work there. Do not build
   anything to work around this; use the stable production URL to test auth.
