@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/*
+ * NuIQ palette — drawn from the origami-peak mark (CLAUDE.md §8).
+ * Flat, precise, geometric, restrained. Deep indigo/blue facet tones.
+ * No gradients, no glow, no dashboard-template clichés.
+ */
+@theme {
+  --color-peak-950: #0a1338;
+  --color-peak-900: #0f1e5a;
+  --color-peak-800: #16277a;
+  --color-peak-700: #1e3a8a;
+  --color-peak-600: #1d4ed8;
+  --color-peak-500: #2563eb;
+  --color-peak-300: #7ea6f5;
+  --color-peak-100: #dbe6fb;
+  --color-peak-50: #f2f6fd;
+
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f7f9fc;
+  --color-ink: #14181f;
+  --color-ink-muted: #5a6473;
+  --color-hairline: #e2e7ef;
+
+  /* NuAIg's own accent — belongs to the footer mark only (CLAUDE.md §8). */
+  --color-nuaig: #069bdf;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-surface-sunken);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}

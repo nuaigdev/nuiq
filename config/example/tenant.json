@@ -1,0 +1,70 @@
+{
+  "clientId": "example",
+  "displayName": "Example Senior Living Group",
+  "entraTenantId": "00000000-0000-0000-0000-000000000000",
+  "entraClientId": "00000000-0000-0000-0000-000000000000",
+  "fabricWorkspaceId": "00000000-0000-0000-0000-000000000000",
+  "warehouseSqlEndpoint": "example.datawarehouse.fabric.microsoft.com",
+  "powerBi": {
+    "workspaceId": "00000000-0000-0000-0000-000000000000",
+    "reports": [
+      {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "name": "Occupancy & Census",
+        "facilityFilterField": "CommunityId"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000002",
+        "name": "Falls & Incidents",
+        "facilityFilterField": "CommunityId"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000003",
+        "name": "Staffing & Ratios",
+        "facilityFilterField": "CommunityId"
+      }
+    ]
+  },
+  "fabricDataAgents": [
+    {
+      "id": "00000000-0000-0000-0000-00000000000a",
+      "name": "Census & Occupancy Agent",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "description": "Natural-language questions over census and occupancy tables"
+    },
+    {
+      "id": "00000000-0000-0000-0000-00000000000b",
+      "name": "Quality & Incidents Agent",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "description": "Falls, elopements, and medication error trends"
+    }
+  ],
+  "agents": [
+    {
+      "type": "foundry",
+      "name": "Quality Insights Agent",
+      "display": "chat-panel",
+      "endpoint": "https://example.services.ai.azure.com/api/projects/example",
+      "agentId": "asst_example"
+    },
+    {
+      "type": "copilot-studio",
+      "name": "Care Ops Assistant",
+      "display": "chat-panel",
+      "embedUrl": "https://copilotstudio.microsoft.com/environments/example/bots/example/webchat"
+    },
+    {
+      "type": "power-platform",
+      "name": "Incident Intake",
+      "display": "iframe",
+      "appUrl": "https://apps.powerapps.com/play/e/example/a/example"
+    }
+  ],
+  "orgHierarchy": {
+    "levels": ["organization", "region", "community", "unit"]
+  },
+  "branding": {
+    "primaryColor": "#1E3A8A",
+    "clientLogoUrl": ""
+  }
+}
