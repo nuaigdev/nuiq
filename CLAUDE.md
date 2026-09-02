@@ -419,6 +419,12 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
 - **The endpoint only exists once the agent is published.** A correctly built
   URL for an unpublished agent errors, so surface that as its own state rather
   than a generic failure.
+- **Fabric permissions live under "Power BI Service" in the app registration.**
+  There is no "Fabric API" entry in the permissions picker — Fabric and Power BI
+  are the same resource application, so the Fabric item scopes
+  (`Item.Read.All`, `Item.Execute.All`, and the rest) are listed there. The
+  *audience* is still `api.fabric.microsoft.com`; only the permissions UI is
+  shared. Do not send anyone looking for a separate Fabric API.
 - **Fabric needs its own token.** An access token is issued for one resource, so
   the Power BI token on the session cannot call Fabric — a second token is minted
   for the same user from the refresh token, with scope

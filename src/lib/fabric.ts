@@ -20,6 +20,15 @@ import type { FabricDataAgent, TenantConfig } from "./tenant-config";
  * scoping that Tab 2 enforces.
  */
 
+/**
+ * Fabric's token audience.
+ *
+ * Note the asymmetry, which costs people an afternoon: the *audience* is
+ * api.fabric.microsoft.com, but the *permissions* are granted under "Power BI
+ * Service" in the app registration. There is no "Fabric API" entry in the
+ * permissions picker — Fabric and Power BI are the same resource application,
+ * which is also why one set of consented scopes covers both audiences.
+ */
 const FABRIC_SCOPE = "https://api.fabric.microsoft.com/.default";
 
 /** MCP endpoint for a published data agent. Unpublished agents error here. */
@@ -66,8 +75,10 @@ async function getFabricToken(
 
   if (!response.ok || !body.access_token) {
     throw new Error(
-      "Could not get a Fabric token for your account. The app registration " +
-        "may be missing consent for the Fabric API. " +
+      "Could not get a Fabric token for your account. Fabric scopes are granted " +
+        'under "Power BI Service" in the app registration — there is no separate ' +
+        '"Fabric API" entry in the permissions picker — so check that ' +
+        "Item.Read.All and Item.Execute.All are added there and admin-consented. " +
         (body.error_description?.split("\n")[0] ?? ""),
     );
   }
