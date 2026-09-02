@@ -1,5 +1,8 @@
 import "server-only";
 
+import { getToken } from "next-auth/jwt";
+import { headers } from "next/headers";
+
 import { auth, isAuthConfigured } from "./auth";
 
 /**
@@ -52,4 +55,31 @@ export async function getSession(): Promise<AppSession> {
     powerBiToken: expired ? undefined : session.powerBiToken,
     sessionExpired: expired,
   };
+}
+
+/**
+ * The user's Entra refresh token, read straight from the session JWT.
+ *
+ * Deliberately not exposed on the session object. NextAuth's session is what
+ * would be serialized to the browser if a client component ever asked for it,
+ * and a refresh token in the browser is a standing credential for that user.
+ * Reading the JWT here keeps it server-side by construction.
+ *
+ * It is needed because an access token is issued for one resource: the Power BI
+ * token on the session cannot call Fabric, so a second token has to be minted
+ * for the same user (see `fabric.ts`).
+ */
+export async function getRefreshToken(): Promise<string | undefined> {
+  if (!isAuthConfigured()) return undefined;
+
+  const requestHeaders = await headers();
+  const token = await getToken({
+    req: { headers: requestHeaders },
+    secret: process.env.AUTH_SECRET as string,
+    secureCookie:
+      requestHeaders.get("x-forwarded-proto") === "https" ||
+      (requestHeaders.get("origin") ?? "").startsWith("https:"),
+  });
+
+  return token?.refreshToken;
 }

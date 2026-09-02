@@ -37,7 +37,9 @@ const NAV_DEFINITIONS: NavDefinition[] = [
   {
     href: "/data-agents",
     label: "Data Agents",
-    isConfigured: (config) => config.fabricDataAgents.length > 0,
+    // Always available: an admin adds the first agent from inside the tab, so
+    // hiding it when config is empty would hide the only way to add one.
+    isConfigured: () => true,
   },
   {
     href: "/ai-agents",

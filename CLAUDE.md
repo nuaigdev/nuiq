@@ -410,9 +410,45 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
 - **Assume more than one.** `tenant.json` carries a `fabricDataAgents` array, and a client will typically publish several — each scoped to a subject area (census, quality/incidents, staffing). The tab must render a list/switcher and support N agents; never build a UI that assumes a single agent and gets retrofitted later.
 - Each entry names the agent's Fabric item `id`, its `workspaceId`, a display `name`, and a short `description`. All of it comes from config — no agent ids, names, or workspace ids in components.
 - **Query on behalf of the signed-in user**, not via a service principal with blanket warehouse access. The user's own Entra ID identity is what makes the agent's answers respect their warehouse permissions and facility scope (§2). A shared high-privilege identity here would silently defeat the RLS posture Tab 2 enforces — if the on-behalf-of flow is hard to wire, flag it rather than falling back to a service principal.
+- **Consumption is over MCP, not plain REST.** A published agent exposes
+  `https://api.fabric.microsoft.com/v1/mcp/workspaces/{workspaceId}/dataagents/{agentId}/agent`,
+  and a connection must follow the protocol: `initialize`, then `tools/list`,
+  then `tools/call`. An arbitrary HTTP POST is rejected. The agent exposes
+  exactly one tool; discover its name and its question argument from the
+  returned schema rather than hardcoding either, since both can change.
+- **The endpoint only exists once the agent is published.** A correctly built
+  URL for an unpublished agent errors, so surface that as its own state rather
+  than a generic failure.
+- **Fabric needs its own token.** An access token is issued for one resource, so
+  the Power BI token on the session cannot call Fabric — a second token is minted
+  for the same user from the refresh token, with scope
+  `https://api.fabric.microsoft.com/.default`. The refresh token is read from the
+  session JWT server-side (`getRefreshToken`) and deliberately never placed on
+  the session object, which would be serialized to the browser if a client
+  component ever asked for it.
+- **There is no plain-REST alternative — do not go looking for one.** The old
+  OpenAI-Assistants-shaped endpoint (`.../aiskills/{id}/aiassistant/openai`) is
+  gone; Microsoft states that since OpenAI retired the Assistants API,
+  applications should use the MCP endpoint. MCP is the wire protocol to Fabric
+  only: the browser still talks to an ordinary server action.
+- **The MCP endpoint has no conversation memory.** Microsoft is explicit that
+  callers must maintain conversation state and supply context across requests,
+  so a bounded transcript of recent turns is prepended to each question.
+  Without it a follow-up like "and what about last month?" has nothing to refer
+  back to.
 - Chat UI is first-party (our own React chat surface calling the data agent endpoint server-side), not a vendor iframe — Fabric data agents do not ship a drop-in web-chat widget the way Copilot Studio does. Do not go looking for one.
+- **Prerequisites are the client's, not ours**: an F2+ (or P1+) capacity, the
+  cross-geo AI tenant settings enabled, and a published agent over a data source
+  the user can read.
+- **Compliance flag, unresolved.** Microsoft states that responses returned
+  through the MCP endpoint may leave Fabric's compliance boundary or geographic
+  region and be handled per the MCP client's own policies. NuIQ is that client.
+  Answers can carry census, falls and incident detail, so this needs a real
+  decision alongside the HIPAA/BAA question in §3b before a production client
+  uses this tab.
 - Where the agent returns the SQL or the tables it consulted, surface that as inspectable detail alongside the answer. Users acting on a census or falls number need to see where it came from; an unexplained number in this domain is worse than no number.
-- Conversation state is per-user and per-session. Do not persist agent transcripts server-side without an explicit decision — see the PHI note under Tab 4, which applies here too.
+- Conversation state is per-user and per-session, held in browser component state and never persisted. Each `tools/call` is independent, so prior turns are not carried — do not add server-side transcript storage without an explicit decision (see the PHI note under Tab 4, which applies here too).
+- **Agents are added and removed from `/data-agents/manage`**, gated on `ADMIN_EMAILS` and enforced server-side, exactly as dashboards are. The list lives in the client's config document, so a new agent appears without a redeploy.
 
 ### Tab 4 — AI Agents (Foundry / Copilot)
 
