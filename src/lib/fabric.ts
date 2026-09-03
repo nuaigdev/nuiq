@@ -114,6 +114,17 @@ async function getFabricToken(
   return { token: body.access_token, ...readTokenClaims(body.access_token) };
 }
 
+/**
+ * How long to wait for an answer.
+ *
+ * The MCP SDK defaults to 60s, which a data agent routinely exceeds: it has to
+ * plan the question, generate SQL, run it against the warehouse and summarise
+ * the result. Vercel functions allow up to 300s, so leave headroom below that —
+ * hitting our own timeout produces a clear message, whereas hitting the
+ * platform's produces a bare 504.
+ */
+const TOOL_TIMEOUT_MS = 240_000;
+
 /** How many prior turns to carry. Enough for a follow-up, bounded so the
  *  prompt cannot grow without limit over a long conversation. */
 const CONTEXT_TURNS = 6;
@@ -145,6 +156,8 @@ export type AgentAnswer =
   | { status: "missing-scope"; scopes: string[]; audience: string }
   /** Authenticated and scoped, but not permitted on this agent or its data. */
   | { status: "forbidden" }
+  /** The agent did not answer in time. */
+  | { status: "timeout" }
   | { status: "not-published" }
   | { status: "error"; detail: string };
 
@@ -204,10 +217,20 @@ export async function askDataAgent(
     >;
     const questionArg = Object.keys(properties)[0] ?? "question";
 
-    const result = await client.callTool({
-      name: tool.name,
-      arguments: { [questionArg]: withContext(question, history) },
-    });
+    const result = await client.callTool(
+      {
+        name: tool.name,
+        arguments: { [questionArg]: withContext(question, history) },
+      },
+      undefined,
+      {
+        timeout: TOOL_TIMEOUT_MS,
+        // If Fabric reports progress, treat that as liveness rather than
+        // counting it against the clock.
+        resetTimeoutOnProgress: true,
+        maxTotalTimeout: TOOL_TIMEOUT_MS,
+      },
+    );
 
     const content = (result.content ?? []) as { type: string; text?: string }[];
     const text = content
@@ -226,6 +249,11 @@ export async function askDataAgent(
     // "does not have any of the required scopes". That is a consent gap in the
     // app registration, not a permission the user is missing — quite different
     // to act on, so keep it separate from "forbidden".
+    // -32001 is the MCP timeout code. Worth its own state: nothing is wrong
+    // with access or configuration, the question was simply too slow.
+    if (/-32001|timed out|timeout/i.test(message)) {
+      return { status: "timeout" };
+    }
     if (/required scopes|AuthorizationFailed/i.test(message)) {
       return {
         status: "missing-scope",

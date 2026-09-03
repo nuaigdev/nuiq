@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { askDataAgentAction } from "@/app/data-agents/actions";
 
@@ -33,7 +33,23 @@ export function DataAgentChat({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
   const [pending, setPending] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const endRef = useRef<HTMLLIElement>(null);
+
+  /*
+   * A data agent can take minutes: it plans the question, writes SQL, runs it,
+   * then summarises. A static "working…" for that long reads as a hang, so show
+   * the clock — it is the difference between waiting and wondering.
+   */
+  useEffect(() => {
+    if (!pending) return;
+    const started = Date.now();
+    const id = setInterval(
+      () => setElapsed(Math.round((Date.now() - started) / 1000)),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [pending]);
 
   async function ask(text: string) {
     const trimmed = text.trim();
@@ -48,6 +64,7 @@ export function DataAgentChat({
 
     setTurns((prev) => [...prev, { role: "user", text: trimmed }]);
     setQuestion("");
+    setElapsed(0);
     setPending(true);
 
     const result = await askDataAgentAction(agentId, trimmed, history);
@@ -111,8 +128,14 @@ export function DataAgentChat({
               </li>
             ))}
             {pending ? (
-              <li className="text-sm text-ink-subtle">
+              <li className="flex items-center gap-2 text-sm text-ink-subtle">
+                <span
+                  aria-hidden
+                  className="h-1.5 w-1.5 animate-pulse rounded-full bg-peak-400"
+                />
                 {agentName} is working through your data…
+                {elapsed >= 5 ? ` ${elapsed}s` : ""}
+                {elapsed >= 45 ? " — complex questions can take a few minutes." : ""}
               </li>
             ) : null}
             <li ref={endRef} />

@@ -416,6 +416,14 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
   then `tools/call`. An arbitrary HTTP POST is rejected. The agent exposes
   exactly one tool; discover its name and its question argument from the
   returned schema rather than hardcoding either, since both can change.
+- **Data agent questions are slow, and the defaults are wrong for them.** The
+  MCP SDK times out at 60s, which a real question routinely exceeds — it has to
+  plan, generate SQL, query the warehouse and summarise. The tool call is given
+  240s against a 300s `maxDuration` on the route, so our own timeout fires first
+  and produces a message rather than a bare platform 504. A timeout is its own
+  state: nothing is wrong with access or configuration, the question was too
+  broad. Show elapsed time while waiting — minutes of a static spinner reads as
+  a hang.
 - **The endpoint only exists once the agent is published.** A correctly built
   URL for an unpublished agent errors, so surface that as its own state rather
   than a generic failure.

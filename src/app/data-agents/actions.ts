@@ -81,6 +81,13 @@ export async function askDataAgentAction(
           "AUTH_FORCE_CONSENT=true and sign in again.",
       };
     }
+    case "timeout":
+      return {
+        error:
+          "The agent did not answer in time. Questions that span many tables or " +
+          "a wide date range can take longer than the portal will wait — try a " +
+          "narrower question, or ask about one community or one month first.",
+      };
     case "forbidden":
       return {
         error:

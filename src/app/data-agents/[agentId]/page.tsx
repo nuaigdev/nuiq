@@ -11,6 +11,13 @@ import { getTenantConfig } from "@/lib/tenant-config";
  */
 export const dynamic = "force-dynamic";
 
+/**
+ * Data agent questions are slow by nature — plan, generate SQL, query,
+ * summarise. Without this the platform's default would cut the request off
+ * before the agent had a chance to answer.
+ */
+export const maxDuration = 300;
+
 export async function generateMetadata({
   params,
 }: {
