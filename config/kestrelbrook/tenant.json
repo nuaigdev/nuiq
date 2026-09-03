@@ -19,9 +19,15 @@
   "fabricDataAgents": [
     {
       "id": "0984af4a-314f-454b-8b7d-d65bbb358029",
-      "name": "Senior Living Data Agent",
+      "name": "Marketing & Inquiries Agent",
       "workspaceId": "82e7ab20-0178-49bf-9358-afd89233992b",
-      "description": "Ask questions of the warehouse in natural language."
+      "description": "Natural-language questions over the marketing schema — inquiries, referral sources, campaigns, tours and move-ins.",
+      "suggestions": [
+        "Which referral sources generated the most inquiries this month?",
+        "How many inquiries converted to move-ins last quarter?",
+        "Which campaigns are driving the most tours?",
+        "What tables can you query?"
+      ]
     }
   ],
   "agents": [

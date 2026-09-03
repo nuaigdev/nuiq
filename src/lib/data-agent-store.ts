@@ -20,6 +20,18 @@ import {
 const GUID =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
+/**
+ * Shown when an agent carries no openers of its own — agents added before
+ * suggestions were configurable, mostly. Deliberately schema-agnostic: these
+ * ask the agent what it holds rather than assuming what it holds.
+ */
+export const FALLBACK_SUGGESTIONS = [
+  "What tables can you query?",
+  "What time period does this data cover?",
+  "Summarise the key trends in this data.",
+  "Which measures can you report on?",
+];
+
 export const dataAgentInputSchema = z.object({
   id: z.string().trim().regex(GUID, "Data agent ID must be a GUID."),
   name: z.string().trim().min(1, "Give the data agent a name."),
@@ -29,6 +41,20 @@ export const dataAgentInputSchema = z.object({
     .trim()
     .optional()
     .transform((value) => (value ? value : undefined)),
+  // One per line in the form, because a comma is fair game inside a question.
+  suggestions: z
+    .string()
+    .nullish()
+    .transform((value) =>
+      (value ?? "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    )
+    .refine(
+      (lines) => lines.length <= 4,
+      "Four suggested questions at most — more than that is a list, not a prompt.",
+    ),
 });
 
 export type DataAgentInput = z.infer<typeof dataAgentInputSchema>;

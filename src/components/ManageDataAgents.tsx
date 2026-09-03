@@ -111,6 +111,27 @@ export function AddDataAgentForm() {
             className={`${FIELD} mt-1.5`}
           />
         </div>
+        <div className="sm:col-span-2">
+          <label className={LABEL} htmlFor="agent-suggestions">
+            Suggested questions{" "}
+            <span className="normal-case">(optional, one per line)</span>
+          </label>
+          <textarea
+            id="agent-suggestions"
+            name="suggestions"
+            rows={4}
+            placeholder={
+              "Which referral sources generated the most inquiries this month?\nHow many inquiries converted to move-ins last quarter?"
+            }
+            className={`${FIELD} mt-1.5 resize-y`}
+          />
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-subtle">
+            Up to four. These are the openers offered before the first question,
+            so write them for what <em>this</em> agent is published over — the
+            right questions for a marketing schema are not the right questions
+            for a clinical one. Leave blank to fall back to generic openers.
+          </p>
+        </div>
       </div>
 
       {state.error ? (

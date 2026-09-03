@@ -107,7 +107,10 @@ export function AgentChatProvider({
   const [elapsed, setElapsed] = useState(0);
   const [revealingId, setRevealingId] = useState<string | null>(null);
   const [arrivedId, setArrivedId] = useState<string | null>(null);
-  const [soundOn, setSoundOn] = useState(false);
+  // On by default: a question can take minutes, and the whole point of the
+  // cue is to be told when the answer lands without watching for it. The
+  // toggle in the panel header turns it off.
+  const [soundOn, setSoundOn] = useState(true);
 
   const storedFullscreen = useSyncExternalStore(
     noopSubscribe,
@@ -118,7 +121,7 @@ export function AgentChatProvider({
   const fullscreen = chosenFullscreen ?? storedFullscreen;
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const soundRef = useRef(false);
+  const soundRef = useRef(true);
 
   /*
    * Bumped whenever a question is asked or abandoned. A reply whose ticket no

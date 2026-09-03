@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 
 import { AgentWorkspace } from "@/components/data-agent/AgentWorkspace";
-import { findDataAgent, getDataAgents } from "@/lib/data-agent-store";
+import {
+  FALLBACK_SUGGESTIONS,
+  findDataAgent,
+  getDataAgents,
+} from "@/lib/data-agent-store";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 /**
@@ -27,18 +31,6 @@ export async function generateMetadata({
   return { title: agent?.name ?? "Data Agents" };
 }
 
-/**
- * Domain-correct openers, so a first-time user is not staring at an empty box
- * wondering what this thing knows. Deliberately generic across clients — they
- * name the metrics the industry uses, never a specific community.
- */
-const SUGGESTIONS = [
-  "What is current occupancy by community?",
-  "How have falls trended over the last three months?",
-  "Which communities have the lowest staffing ratios?",
-  "What tables can you query?",
-];
-
 export default async function DataAgentPage({
   params,
 }: {
@@ -53,12 +45,17 @@ export default async function DataAgentPage({
 
   const agents = getDataAgents(config).map(({ id, name }) => ({ id, name }));
 
+  // The openers belong to the agent, not to this page: what makes a good
+  // question depends on the schema it was published over.
+  const suggestions =
+    agent.suggestions.length > 0 ? agent.suggestions : FALLBACK_SUGGESTIONS;
+
   return (
     <AgentWorkspace
       agentId={agent.id}
       agentName={agent.name}
       description={agent.description}
-      suggestions={SUGGESTIONS}
+      suggestions={suggestions}
       agents={agents}
     />
   );

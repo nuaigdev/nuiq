@@ -16,11 +16,11 @@ import { useEffect, useRef, useState } from "react";
  * looks the same.
  */
 
-/** Comfortably faster than reading speed, so it paces rather than delays. */
-const MIN_CHARS_PER_SECOND = 620;
+/** Ahead of reading speed, but unhurried enough to watch the answer form. */
+const MIN_CHARS_PER_SECOND = 465;
 
-/** A long answer should not take proportionally longer to appear. */
-const TARGET_SECONDS = 3;
+/** A long answer should not take proportionally longer to finish. */
+const TARGET_SECONDS = 4;
 
 /** Roughly 22 updates a second: fluid to read, a third of the parsing. */
 const EMIT_INTERVAL_MS = 45;

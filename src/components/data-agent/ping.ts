@@ -1,7 +1,7 @@
 /**
  * The arrival ping.
  *
- * Off by default, and deliberately not a notification "ding": a single soft
+ * On by default, and deliberately not a notification "ding": a single soft
  * note with a fast attack and a long tail, low enough in level to sit under a
  * conversation in an open office. It is synthesised rather than shipped as an
  * audio file so the page carries no extra asset for a sound most people will

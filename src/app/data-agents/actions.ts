@@ -119,6 +119,7 @@ export async function addDataAgentAction(
     name: formData.get("name"),
     workspaceId: formData.get("workspaceId"),
     description: formData.get("description"),
+    suggestions: formData.get("suggestions"),
   });
 
   if (!parsed.success) {

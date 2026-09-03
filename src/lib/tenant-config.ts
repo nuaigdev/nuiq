@@ -48,6 +48,13 @@ const fabricDataAgentSchema = z.object({
   name: z.string().min(1),
   workspaceId: z.string().min(1),
   description: z.string().optional(),
+  /**
+   * Openers offered before the first question. They belong to the agent rather
+   * than to the page, because what makes a good question depends entirely on
+   * what the agent is published over — a marketing schema and a clinical one
+   * have no useful prompts in common.
+   */
+  suggestions: z.array(z.string().min(1)).default([]),
 });
 
 const agentSchema = z.object({
