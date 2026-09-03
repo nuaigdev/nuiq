@@ -34,7 +34,7 @@ export function TopNav({
   const pathname = usePathname();
 
   return (
-    <header className="chrome-header chrome-edge sticky top-0 z-50 text-white">
+    <header className="app-header chrome-header chrome-edge sticky top-0 z-50 text-white">
       <nav
         aria-label="Primary"
         className="mx-auto flex h-[68px] max-w-[1600px] items-center gap-6 px-6"

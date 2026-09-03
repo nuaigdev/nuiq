@@ -129,3 +129,284 @@ summary {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ==========================================================================
+ * Data agent workspace (CLAUDE.md §5 Tab 3).
+ *
+ * The conversation surface is viewport-locked: the whole route lives inside
+ * 100dvh and only the message list scrolls, so the input is always reachable
+ * without scrolling the page. Everything below is scoped to that route by the
+ * data attributes `AgentWorkspace` sets on <html> — no other page is affected.
+ * ==========================================================================*/
+
+@theme {
+  /*
+   * A cooler paper than the app's usual sunken surface, so the white chat
+   * panel reads as docked on top of it rather than continuous with it. Values
+   * stay inside the peak facet family — this is the same product, not a
+   * separately themed screen.
+   */
+  --color-agent-ground: #eef2fa;
+  --color-agent-raised: #f6f8fd;
+  --color-agent-line: #dde4f2;
+}
+
+/* --- the viewport lock ---------------------------------------------------- */
+
+html[data-app-lock="viewport"],
+html[data-app-lock="viewport"] body {
+  /* dvh, not vh: mobile browser chrome must not push the input off-screen. */
+  height: 100dvh;
+  overflow: hidden;
+}
+
+html[data-app-lock="viewport"] .app-main {
+  /* Without min-height:0 a flex child refuses to shrink below its content. */
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The footer's margin and its descriptive half both cost viewport height we
+ * do not have here. The "Powered by NuAIg" credit itself always stays — §8. */
+html[data-app-lock="viewport"] .app-footer {
+  margin-top: 0;
+}
+
+html[data-app-lock="viewport"] .app-footer-verbose {
+  display: none;
+}
+
+html[data-app-lock="viewport"] .app-footer-credit {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+}
+
+html[data-app-lock="viewport"] .app-footer-inner {
+  padding-block: 0.875rem;
+}
+
+/* --- focus mode ----------------------------------------------------------- */
+
+/*
+ * Fullscreen chat slides the chrome out rather than unmounting it: the header
+ * and footer keep their place in the layout and are covered by the expanded
+ * panel, so exiting restores the exact same geometry with nothing to reflow.
+ */
+.app-header,
+.app-footer {
+  transition:
+    transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 200ms ease;
+}
+
+html[data-app-focus="on"] .app-header {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+html[data-app-focus="on"] .app-footer {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- conversation motion -------------------------------------------------- */
+
+/* Waiting for the first token: three dots, each a beat behind the last. */
+@keyframes agent-dot {
+  0%,
+  70%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.72);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.agent-dot {
+  animation: agent-dot 1.25s ease-in-out infinite;
+}
+
+/* The text cursor that trails the answer while it is still arriving. */
+@keyframes agent-caret {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0.05;
+  }
+}
+
+.agent-caret {
+  animation: agent-caret 1s ease-in-out infinite;
+}
+
+/* One gentle ring as a finished answer lands. Fades out and never repeats. */
+@keyframes agent-arrival {
+  from {
+    box-shadow: 0 0 0 0 rgba(36, 80, 214, 0.28);
+  }
+  to {
+    box-shadow: 0 0 0 14px rgba(36, 80, 214, 0);
+  }
+}
+
+.agent-arrival {
+  animation: agent-arrival 600ms ease-out 1;
+}
+
+/* Placeholder for a table or code block that has not finished arriving. */
+@keyframes agent-shimmer {
+  from {
+    background-position: -180% 0;
+  }
+  to {
+    background-position: 180% 0;
+  }
+}
+
+.agent-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-agent-raised) 30%,
+    #e9eefb 48%,
+    var(--color-agent-raised) 66%
+  );
+  background-size: 220% 100%;
+  animation: agent-shimmer 1.4s linear infinite;
+}
+
+/* --- code blocks ---------------------------------------------------------- */
+
+/*
+ * Code is dark whatever the surrounding theme is, so a SQL fragment reads as
+ * quoted machine output rather than as more prose. highlight.js supplies the
+ * token classes; the palette is ours, held to the same indigo family.
+ */
+.agent-code {
+  color: #dfeafd;
+}
+
+.agent-code .hljs-keyword,
+.agent-code .hljs-selector-tag,
+.agent-code .hljs-literal,
+.agent-code .hljs-section {
+  color: #93b8f9;
+}
+
+.agent-code .hljs-string,
+.agent-code .hljs-attr,
+.agent-code .hljs-attribute {
+  color: #9fdcc0;
+}
+
+.agent-code .hljs-number,
+.agent-code .hljs-symbol,
+.agent-code .hljs-bullet {
+  color: #f0c98a;
+}
+
+.agent-code .hljs-title,
+.agent-code .hljs-name,
+.agent-code .hljs-function .hljs-title {
+  color: #c2d7fc;
+}
+
+.agent-code .hljs-comment,
+.agent-code .hljs-quote {
+  color: #6f7fa8;
+  font-style: italic;
+}
+
+.agent-code .hljs-built_in,
+.agent-code .hljs-type {
+  color: #b9c5ec;
+}
+
+.agent-code .hljs-deletion {
+  color: #f2a2a2;
+}
+
+/*
+ * The caret trails the answer while it is still arriving. It is a pseudo-element
+ * on the last rendered block rather than a sibling node, so it sits at the end
+ * of the final line of text instead of dropping onto a line of its own.
+ */
+.agent-revealing > * > *:last-child::after,
+.agent-revealing > * > ul:last-child > li:last-child::after,
+.agent-revealing > * > ol:last-child > li:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: -2px;
+  border-radius: 1px;
+  background-color: var(--color-peak-600);
+  animation: agent-caret 1s ease-in-out infinite;
+}
+
+/* The list itself must not also grow one, or there are two. */
+.agent-revealing > * > ul:last-child::after,
+.agent-revealing > * > ol:last-child::after {
+  content: none;
+}
+
+/*
+ * The context panel's anchor visual: a faceted peak with a few loose facets
+ * drifting above it. Motion is deliberately near the threshold of noticing —
+ * half a minute per cycle, a few pixels of travel — so it reads as ambient
+ * rather than as something asking to be watched.
+ *
+ * Driven by CSS transforms rather than SMIL so that the reduced-motion rule at
+ * the top of this file stops it like everything else: iteration-count 1 leaves
+ * each facet resting at its end position, which is a composition in its own
+ * right rather than a half-finished frame.
+ */
+@keyframes agent-drift-a {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-7px, -5px);
+  }
+}
+
+@keyframes agent-drift-b {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(5px, -8px) rotate(3deg);
+  }
+}
+
+@keyframes agent-drift-c {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(4px, 6px);
+  }
+}
+
+.agent-drift-a {
+  animation: agent-drift-a 31s ease-in-out infinite alternate;
+}
+
+.agent-drift-b {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: agent-drift-b 44s ease-in-out infinite alternate;
+}
+
+.agent-drift-c {
+  animation: agent-drift-c 37s ease-in-out infinite alternate;
+}

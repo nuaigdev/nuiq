@@ -69,7 +69,7 @@ export default async function RootLayout({
               clientLogoUrl={config.branding.clientLogoUrl || undefined}
               authControls={<AuthControls />}
             />
-            <main className="flex-1">{children}</main>
+            <main className="app-main flex-1">{children}</main>
             <Footer />
           </>
         ) : (

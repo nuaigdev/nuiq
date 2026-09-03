@@ -17,9 +17,9 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="chrome-footer mt-16 text-peak-100">
-      <div className="mx-auto max-w-[1600px] px-6 py-9">
-        <div className="flex flex-col gap-7 sm:flex-row sm:items-start sm:justify-between">
+    <footer className="app-footer chrome-footer mt-16 text-peak-100">
+      <div className="app-footer-inner mx-auto max-w-[1600px] px-6 py-9">
+        <div className="app-footer-verbose flex flex-col gap-7 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-xl">
             <h2 className="text-sm font-semibold text-white">
               A data intelligence portal for senior living
@@ -41,7 +41,7 @@ export function Footer() {
           </Link>
         </div>
 
-        <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="app-footer-credit mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <a
             href="https://www.nuaig.ai"
             target="_blank"
