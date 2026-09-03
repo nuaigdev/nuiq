@@ -63,6 +63,14 @@ export async function askDataAgentAction(
   switch (result.status) {
     case "ok":
       return { answer: result.text };
+    case "missing-scope":
+      return {
+        error:
+          "This portal's app registration is missing the scope Fabric requires. " +
+          "Add the delegated permission Item.Execute.All under Power BI Service, " +
+          "grant admin consent, then sign out and back in so your session picks " +
+          "up the new consent.",
+      };
     case "forbidden":
       return {
         error:

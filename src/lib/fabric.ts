@@ -109,6 +109,9 @@ function withContext(
 
 export type AgentAnswer =
   | { status: "ok"; text: string }
+  /** Authenticated, but the token lacks the scopes the endpoint requires. */
+  | { status: "missing-scope" }
+  /** Authenticated and scoped, but not permitted on this agent or its data. */
   | { status: "forbidden" }
   | { status: "not-published" }
   | { status: "error"; detail: string };
@@ -185,7 +188,14 @@ export async function askDataAgent(
   } catch (error) {
     const message = (error as Error).message ?? "";
 
-    if (/401|403|unauthor|forbidden/i.test(message)) {
+    // Fabric reports a scope problem as AuthorizationFailedException with
+    // "does not have any of the required scopes". That is a consent gap in the
+    // app registration, not a permission the user is missing — quite different
+    // to act on, so keep it separate from "forbidden".
+    if (/required scopes|AuthorizationFailed/i.test(message)) {
+      return { status: "missing-scope" };
+    }
+    if (/401|403|unauthorized|forbidden/i.test(message)) {
       return { status: "forbidden" };
     }
     // A manually built URL is valid but dead until the agent is published.

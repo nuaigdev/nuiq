@@ -419,6 +419,13 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
 - **The endpoint only exists once the agent is published.** A correctly built
   URL for an unpublished agent errors, so surface that as its own state rather
   than a generic failure.
+- **The MCP endpoint requires `Item.Execute.All`.** Asking a data agent a
+  question *executes* a Fabric item, so read scopes alone are refused —
+  `AuthorizationFailedException ... the token does not have any of the required
+  scopes`. That is a consent gap in the app registration, not a permission the
+  signed-in user lacks, and the two need different messages: one is fixed by an
+  Entra admin, the other by whoever owns the agent. After granting consent, sign
+  out and back in so the session's refresh token reflects it.
 - **Fabric permissions live under "Power BI Service" in the app registration.**
   There is no "Fabric API" entry in the permissions picker — Fabric and Power BI
   are the same resource application, so the Fabric item scopes
