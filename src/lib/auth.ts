@@ -124,7 +124,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
         clientId: config.entraClientId,
         clientSecret: process.env.ENTRA_CLIENT_SECRET ?? "",
         issuer: `https://login.microsoftonline.com/${config.entraTenantId}/v2.0`,
-        authorization: { params: { scope: SCOPE } },
+        authorization: {
+          params: {
+            scope: SCOPE,
+            /*
+             * Entra only shows a consent screen for scopes the app asks for,
+             * and sign-in asks for Power BI scopes only — the Fabric token is
+             * obtained later by redeeming the refresh token. So adding a Fabric
+             * permission in the portal never triggers a new prompt, and the
+             * existing grant can go stale without any visible sign.
+             *
+             * Setting AUTH_FORCE_CONSENT=true forces the consent screen on the
+             * next sign-in, which refreshes the grant. Set it, sign in once,
+             * then remove it — forcing consent on every sign-in is noise.
+             */
+            ...(process.env.AUTH_FORCE_CONSENT === "true"
+              ? { prompt: "consent" }
+              : {}),
+          },
+        },
       }),
     ],
     callbacks: {

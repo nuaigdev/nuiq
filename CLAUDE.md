@@ -426,6 +426,16 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
   signed-in user lacks, and the two need different messages: one is fixed by an
   Entra admin, the other by whoever owns the agent. After granting consent, sign
   out and back in so the session's refresh token reflects it.
+- **Adding a Fabric permission does not prompt for consent on its own.** Sign-in
+  requests Power BI scopes only; the Fabric token is obtained afterwards by
+  redeeming the refresh token for that audience. Entra shows a consent screen
+  only for scopes the app *asks for*, so a newly added Fabric permission can sit
+  unconsented for the session with no visible sign — the symptom is a scope error
+  that persists through sign-out and back in. `AUTH_FORCE_CONSENT=true` forces
+  the prompt on the next sign-in; set it, sign in once, remove it.
+- **A scope failure reports the scopes the token actually carried.** "Add the
+  permission" is useless advice to someone who already added it; what resolves it
+  is seeing whether the scope reached the token at all.
 - **Fabric permissions live under "Power BI Service" in the app registration.**
   There is no "Fabric API" entry in the permissions picker — Fabric and Power BI
   are the same resource application, so the Fabric item scopes

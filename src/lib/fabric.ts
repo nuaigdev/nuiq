@@ -48,10 +48,38 @@ function mcpUrl(agent: FabricDataAgent): URL {
  * costs one extra round trip, and it avoids holding a second long-lived
  * credential in the cookie.
  */
+type FabricToken = { token: string; scopes: string[]; audience: string };
+
+/**
+ * Read the scope (`scp`) and audience (`aud`) claims out of an access token.
+ *
+ * Decode only — no verification, and the token itself is never returned or
+ * logged. This exists so a scope failure can say which scopes the token
+ * actually carries, which turns an opaque "required scopes" error into
+ * something an admin can act on.
+ */
+function readTokenClaims(token: string): { scopes: string[]; audience: string } {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return { scopes: [], audience: "" };
+    const decoded = JSON.parse(
+      Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString(
+        "utf8",
+      ),
+    ) as { scp?: string; aud?: string };
+    return {
+      scopes: decoded.scp ? decoded.scp.split(" ").filter(Boolean) : [],
+      audience: decoded.aud ?? "",
+    };
+  } catch {
+    return { scopes: [], audience: "" };
+  }
+}
+
 async function getFabricToken(
   config: TenantConfig,
   refreshToken: string,
-): Promise<string> {
+): Promise<FabricToken> {
   const response = await fetch(
     `https://login.microsoftonline.com/${config.entraTenantId}/oauth2/v2.0/token`,
     {
@@ -83,7 +111,7 @@ async function getFabricToken(
     );
   }
 
-  return body.access_token;
+  return { token: body.access_token, ...readTokenClaims(body.access_token) };
 }
 
 /** How many prior turns to carry. Enough for a follow-up, bounded so the
@@ -109,8 +137,12 @@ function withContext(
 
 export type AgentAnswer =
   | { status: "ok"; text: string }
-  /** Authenticated, but the token lacks the scopes the endpoint requires. */
-  | { status: "missing-scope" }
+  /**
+   * Authenticated, but the token lacks the scopes the endpoint requires.
+   * Carries what the token *did* have, so the gap is visible rather than
+   * guessed at.
+   */
+  | { status: "missing-scope"; scopes: string[]; audience: string }
   /** Authenticated and scoped, but not permitted on this agent or its data. */
   | { status: "forbidden" }
   | { status: "not-published" }
@@ -137,15 +169,17 @@ export async function askDataAgent(
   question: string,
   history: { role: "user" | "agent"; text: string }[] = [],
 ): Promise<AgentAnswer> {
-  let token: string;
+  let fabricToken: FabricToken;
   try {
-    token = await getFabricToken(config, refreshToken);
+    fabricToken = await getFabricToken(config, refreshToken);
   } catch (error) {
     return { status: "error", detail: (error as Error).message };
   }
 
   const transport = new StreamableHTTPClientTransport(mcpUrl(agent), {
-    requestInit: { headers: { Authorization: `Bearer ${token}` } },
+    requestInit: {
+      headers: { Authorization: `Bearer ${fabricToken.token}` },
+    },
   });
   const client = new Client({ name: "nuiq", version: "1.0.0" });
 
@@ -193,7 +227,11 @@ export async function askDataAgent(
     // app registration, not a permission the user is missing — quite different
     // to act on, so keep it separate from "forbidden".
     if (/required scopes|AuthorizationFailed/i.test(message)) {
-      return { status: "missing-scope" };
+      return {
+        status: "missing-scope",
+        scopes: fabricToken.scopes,
+        audience: fabricToken.audience,
+      };
     }
     if (/401|403|unauthorized|forbidden/i.test(message)) {
       return { status: "forbidden" };

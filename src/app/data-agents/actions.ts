@@ -63,14 +63,24 @@ export async function askDataAgentAction(
   switch (result.status) {
     case "ok":
       return { answer: result.text };
-    case "missing-scope":
+    case "missing-scope": {
+      // Name what the token actually carried. "Add the permission" is useless
+      // advice to someone who already added it — seeing the scopes that came
+      // back shows whether consent reached this token at all.
+      const carried =
+        result.scopes.length > 0
+          ? result.scopes.join(", ")
+          : "(none — the token carries no delegated scopes)";
       return {
         error:
-          "This portal's app registration is missing the scope Fabric requires. " +
-          "Add the delegated permission Item.Execute.All under Power BI Service, " +
-          "grant admin consent, then sign out and back in so your session picks " +
-          "up the new consent.",
+          "Fabric refused the token for missing scopes. It needs " +
+          "Item.Execute.All, granted under Power BI Service in the app " +
+          `registration. Your token carried: ${carried}. Audience: ` +
+          `${result.audience || "unknown"}. If Item.Execute.All is not in that ` +
+          "list, the consent has not reached your session — re-consent with " +
+          "AUTH_FORCE_CONSENT=true and sign in again.",
       };
+    }
     case "forbidden":
       return {
         error:
