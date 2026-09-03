@@ -18,16 +18,10 @@
   },
   "fabricDataAgents": [
     {
-      "id": "00000000-0000-0000-0000-00000000000a",
-      "name": "Census & Occupancy Agent",
-      "workspaceId": "00000000-0000-0000-0000-000000000000",
-      "description": "Natural-language questions over census and occupancy tables"
-    },
-    {
-      "id": "00000000-0000-0000-0000-00000000000b",
-      "name": "Quality & Incidents Agent",
-      "workspaceId": "00000000-0000-0000-0000-000000000000",
-      "description": "Falls, elopements, and medication error trends"
+      "id": "0984af4a-314f-454b-8b7d-d65bbb358029",
+      "name": "Senior Living Data Agent",
+      "workspaceId": "82e7ab20-0178-49bf-9358-afd89233992b",
+      "description": "Ask questions of the warehouse in natural language."
     }
   ],
   "agents": [

@@ -35,6 +35,11 @@ import {
 
 const DEFAULT_PREFIX = "clients";
 
+/** Strip the weak-validator prefix so read and write agree on one form. */
+function normalizeEtag(etag: string): string {
+  return etag.replace(/^W\//, "");
+}
+
 function pathnameFor(clientId: string): string {
   const prefix = process.env.CONFIG_STORE_PREFIX?.trim() || DEFAULT_PREFIX;
   return `${prefix}/${clientId}/tenant-config.json`;
@@ -94,7 +99,11 @@ export function createVercelBlobStore(): ConfigStore {
         );
       }
 
-      return { config, etag: result.blob.etag };
+      // get() hands back a *weak* validator (W/"…") while put({ifMatch})
+      // compares against the strong one. Passing the weak form straight back
+      // makes every conditional write fail as a phantom conflict, so normalize
+      // here — the etag this interface returns is the one write() must accept.
+      return { config, etag: normalizeEtag(result.blob.etag) };
     },
 
     async write(
