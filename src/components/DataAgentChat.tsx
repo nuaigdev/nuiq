@@ -3,17 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 
 import { askDataAgentAction } from "@/app/data-agents/actions";
+import { AgentFlowPanel } from "./AgentFlowPanel";
+import { MarkdownAnswer } from "./MarkdownAnswer";
 
 /**
- * Chat surface for one Fabric data agent.
+ * The data agent workspace: conversation on one side, context on the other.
  *
- * First-party rather than a vendor widget: Fabric data agents ship no drop-in
+ * First-party rather than a vendor widget — Fabric data agents ship no drop-in
  * web chat, they expose an MCP endpoint (CLAUDE.md §5 Tab 3).
  *
  * The transcript lives in component state for the length of the visit and is
  * never persisted. These questions can name communities, residents and
- * incidents, so keeping them out of any store is deliberate — and each call to
- * the agent is independent, so nothing is retained on the Fabric side either.
+ * incidents, so keeping them out of any store is deliberate.
  */
 
 type Turn =
@@ -21,26 +22,67 @@ type Turn =
   | { role: "agent"; text: string }
   | { role: "error"; text: string };
 
+/**
+ * What to say while waiting. A data agent takes a while, and naming the stage
+ * it is plausibly at reads as progress rather than a hang. These are estimates
+ * by design — the endpoint reports no real progress.
+ */
+const WAIT_STAGES = [
+  { after: 0, label: "Reading your question" },
+  { after: 6, label: "Planning a query over your data" },
+  { after: 18, label: "Querying the warehouse" },
+  { after: 40, label: "Still working — larger questions take longer" },
+  { after: 90, label: "Assembling the answer" },
+];
+
+function stageFor(seconds: number): string {
+  let label = WAIT_STAGES[0].label;
+  for (const stage of WAIT_STAGES) {
+    if (seconds >= stage.after) label = stage.label;
+  }
+  return label;
+}
+
+function Thinking({ seconds }: { seconds: number }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-peak-600/10">
+        <span className="flex gap-[3px]">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="h-1 w-1 animate-bounce rounded-full bg-peak-500"
+              style={{ animationDelay: `${i * 140}ms`, animationDuration: "1s" }}
+            />
+          ))}
+        </span>
+      </span>
+      <div className="min-w-0 pt-0.5">
+        <p className="text-[13px] text-ink-muted">{stageFor(seconds)}</p>
+        <p className="mt-1 font-mono text-[11px] text-ink-subtle">{seconds}s</p>
+      </div>
+    </div>
+  );
+}
+
 export function DataAgentChat({
   agentId,
   agentName,
+  description,
   suggestions,
 }: {
   agentId: string;
   agentName: string;
+  description?: string;
   suggestions: string[];
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
   const [pending, setPending] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const endRef = useRef<HTMLLIElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  /*
-   * A data agent can take minutes: it plans the question, writes SQL, runs it,
-   * then summarises. A static "working…" for that long reads as a hang, so show
-   * the clock — it is the difference between waiting and wondering.
-   */
   useEffect(() => {
     if (!pending) return;
     const started = Date.now();
@@ -51,13 +93,16 @@ export function DataAgentChat({
     return () => clearInterval(id);
   }, [pending]);
 
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [turns, pending]);
+
   async function ask(text: string) {
     const trimmed = text.trim();
     if (!trimmed || pending) return;
 
     // Snapshot before appending: the agent needs what came *before* this
-    // question. Error turns are excluded — they are our messages, not the
-    // conversation.
+    // question. Error turns are ours, not part of the conversation.
     const history = turns
       .filter((turn) => turn.role !== "error")
       .map((turn) => ({ role: turn.role as "user" | "agent", text: turn.text }));
@@ -76,106 +121,128 @@ export function DataAgentChat({
         : { role: "error", text: result.error ?? "Something went wrong." },
     ]);
     setPending(false);
-    requestAnimationFrame(() =>
-      endRef.current?.scrollIntoView({ behavior: "smooth" }),
-    );
+    inputRef.current?.focus();
   }
 
   return (
-    <div className="card flex h-[68vh] flex-col overflow-hidden rounded-xl">
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        {turns.length === 0 ? (
-          <div className="mx-auto max-w-lg pt-8 text-center">
-            <p className="text-sm text-ink-muted">
-              Ask {agentName} a question about your data.
-            </p>
-            {suggestions.length > 0 ? (
-              <ul className="mt-5 flex flex-col gap-2">
-                {suggestions.map((suggestion) => (
-                  <li key={suggestion}>
-                    <button
-                      type="button"
-                      onClick={() => ask(suggestion)}
-                      className="w-full rounded-lg border border-hairline bg-surface-raised px-4 py-2.5 text-left text-sm text-ink-muted transition-colors hover:border-peak-300 hover:text-ink"
-                    >
-                      {suggestion}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ) : (
-          <ul className="mx-auto flex max-w-3xl flex-col gap-5">
-            {turns.map((turn, i) => (
-              <li
-                key={`${turn.role}-${i}`}
-                className={turn.role === "user" ? "flex justify-end" : ""}
+    <div className="grid items-stretch gap-6 lg:grid-cols-2">
+      <section className="card flex h-[70vh] min-h-[520px] flex-col overflow-hidden rounded-2xl">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {turns.length === 0 && !pending ? (
+            <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+              <span
+                aria-hidden
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-peak-50 text-lg text-peak-600"
               >
-                {turn.role === "user" ? (
-                  <p className="max-w-[80%] rounded-2xl rounded-br-sm bg-peak-600 px-4 py-2.5 text-sm leading-relaxed text-white">
-                    {turn.text}
-                  </p>
+                &#8253;
+              </span>
+              <p className="mt-4 text-sm font-medium text-ink">
+                Ask {agentName} about your data
+              </p>
+              <p className="mt-1.5 max-w-xs text-[13px] leading-relaxed text-ink-muted">
+                Plain language works best. Pick one of the examples alongside, or
+                type your own question below.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {turns.map((turn, i) =>
+                turn.role === "user" ? (
+                  <div key={i} className="flex justify-end">
+                    <p className="max-w-[85%] rounded-2xl rounded-br-md bg-peak-600 px-4 py-2.5 text-[14px] leading-relaxed text-white">
+                      {turn.text}
+                    </p>
+                  </div>
                 ) : turn.role === "agent" ? (
-                  <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-surface-sunken px-4 py-3 text-sm leading-relaxed text-ink">
-                    {turn.text}
-                  </p>
+                  <div key={i} className="flex items-start gap-3">
+                    <span
+                      aria-hidden
+                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-peak-600/10 text-[11px] font-semibold text-peak-700"
+                    >
+                      {agentName.charAt(0)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <MarkdownAnswer>{turn.text}</MarkdownAnswer>
+                    </div>
+                  </div>
                 ) : (
-                  <p className="max-w-[85%] rounded-2xl rounded-bl-sm border border-caution-border bg-surface px-4 py-3 text-sm leading-relaxed text-ink-muted">
+                  <div
+                    key={i}
+                    className="rounded-xl border border-caution-border bg-surface-raised px-4 py-3 text-[13px] leading-relaxed text-ink-muted"
+                  >
                     {turn.text}
-                  </p>
-                )}
-              </li>
-            ))}
-            {pending ? (
-              <li className="flex items-center gap-2 text-sm text-ink-subtle">
-                <span
-                  aria-hidden
-                  className="h-1.5 w-1.5 animate-pulse rounded-full bg-peak-400"
-                />
-                {agentName} is working through your data…
-                {elapsed >= 5 ? ` ${elapsed}s` : ""}
-                {elapsed >= 45 ? " — complex questions can take a few minutes." : ""}
-              </li>
-            ) : null}
-            <li ref={endRef} />
-          </ul>
-        )}
-      </div>
+                  </div>
+                ),
+              )}
+              {pending ? <Thinking seconds={elapsed} /> : null}
+              <div ref={endRef} />
+            </div>
+          )}
+        </div>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void ask(question);
-        }}
-        className="flex items-end gap-3 border-t border-hairline bg-surface-raised px-6 py-4"
-      >
-        <label htmlFor="question" className="sr-only">
-          Your question
-        </label>
-        <textarea
-          id="question"
-          rows={1}
-          value={question}
-          disabled={pending}
-          onChange={(event) => setQuestion(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              void ask(question);
-            }
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void ask(question);
           }}
-          placeholder={`Ask ${agentName}…`}
-          className="max-h-40 min-h-[42px] flex-1 resize-y rounded-lg border border-hairline bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-subtle focus:border-peak-600 focus:outline-none disabled:opacity-60"
-        />
-        <button
-          type="submit"
-          disabled={pending || !question.trim()}
-          className="rounded-lg bg-peak-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-peak-700 disabled:opacity-40"
+          className="border-t border-hairline bg-surface-raised p-3"
         >
-          {pending ? "Asking…" : "Ask"}
-        </button>
-      </form>
+          <div className="flex items-end gap-2 rounded-xl border border-hairline bg-surface p-2 transition-colors focus-within:border-peak-500">
+            <label htmlFor="question" className="sr-only">
+              Your question
+            </label>
+            <textarea
+              id="question"
+              ref={inputRef}
+              rows={1}
+              value={question}
+              disabled={pending}
+              onChange={(event) => {
+                setQuestion(event.target.value);
+                // Grow with the question, up to a point.
+                event.target.style.height = "auto";
+                event.target.style.height = `${Math.min(event.target.scrollHeight, 140)}px`;
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void ask(question);
+                }
+              }}
+              placeholder={`Ask ${agentName}…`}
+              className="max-h-[140px] min-h-[38px] flex-1 resize-none bg-transparent px-2 py-2 text-[14px] leading-relaxed text-ink placeholder:text-ink-subtle focus:outline-none disabled:opacity-60"
+            />
+            <button
+              type="submit"
+              disabled={pending || !question.trim()}
+              aria-label="Ask"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-peak-600 text-white transition-colors hover:bg-peak-700 disabled:opacity-30"
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden>
+                <path
+                  d="M3 10h12M10 5l5 5-5 5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+          <p className="mt-2 px-1 text-[11px] text-ink-subtle">
+            Enter to send · Shift + Enter for a new line
+          </p>
+        </form>
+      </section>
+
+      <AgentFlowPanel
+        agentName={agentName}
+        description={description}
+        suggestions={suggestions}
+        onAsk={ask}
+        busy={pending}
+      />
     </div>
   );
 }

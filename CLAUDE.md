@@ -473,6 +473,16 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
   so a bounded transcript of recent turns is prepended to each question.
   Without it a follow-up like "and what about last month?" has nothing to refer
   back to.
+- **Answers are rendered as markdown, never as HTML.** Agents reply with bold
+  figures, grouped bullets and often tables; rendering that as plain text throws
+  away the structure that makes a numeric answer readable. Use `react-markdown`,
+  which builds React elements rather than setting innerHTML, and do not enable
+  raw HTML — the text is model-generated over client data and must never be able
+  to inject markup into the page.
+- **The workspace is two halves: conversation and context.** A chat box alone
+  tells a first-time user nothing about what the agent knows or what a good
+  question looks like. The right half carries the agent identity, starter
+  questions, and the same animated flow language as the Home hero.
 - Chat UI is first-party (our own React chat surface calling the data agent endpoint server-side), not a vendor iframe — Fabric data agents do not ship a drop-in web-chat widget the way Copilot Studio does. Do not go looking for one.
 - **Prerequisites are the client's, not ours**: an F2+ (or P1+) capacity, the
   cross-geo AI tenant settings enabled, and a published agent over a data source

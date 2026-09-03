@@ -34,9 +34,10 @@ export async function generateMetadata({
  * name the metrics the industry uses, never a specific community.
  */
 const SUGGESTIONS = [
-  "What is current occupancy across our communities?",
+  "What is current occupancy by community?",
+  "Which referral sources generated the most inquiries this month?",
   "How have falls trended over the last three months?",
-  "Which communities had the most medication errors last quarter?",
+  "Which communities have the lowest staffing ratios?",
 ];
 
 export default async function DataAgentPage({
@@ -56,22 +57,12 @@ export default async function DataAgentPage({
   return (
     <div className="mx-auto max-w-[1600px] px-6 py-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-3xl">
-          <Link
-            href="/data-agents"
-            className="text-xs font-medium uppercase tracking-wider text-ink-muted transition-colors hover:text-peak-600"
-          >
-            &larr; All data agents
-          </Link>
-          <h1 className="mt-2 text-[26px] font-semibold leading-tight tracking-tight text-ink">
-            {agent.name}
-          </h1>
-          {agent.description ? (
-            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-              {agent.description}
-            </p>
-          ) : null}
-        </div>
+        <Link
+          href="/data-agents"
+          className="text-xs font-medium uppercase tracking-wider text-ink-muted transition-colors hover:text-peak-600"
+        >
+          &larr; All data agents
+        </Link>
       </div>
 
       {agents.length > 1 ? (
@@ -100,19 +91,15 @@ export default async function DataAgentPage({
         </nav>
       ) : null}
 
-      <div className="mt-5">
+      <div className="mt-4">
         <DataAgentChat
           agentId={agent.id}
           agentName={agent.name}
+          description={agent.description}
           suggestions={SUGGESTIONS}
         />
       </div>
 
-      <p className="mt-4 max-w-3xl text-xs leading-relaxed text-ink-subtle">
-        Answers come from your Fabric warehouse and are scoped to your own
-        access. This conversation is not saved — it lives only in this browser
-        tab for as long as you stay on the page.
-      </p>
     </div>
   );
 }
