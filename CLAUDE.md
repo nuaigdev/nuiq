@@ -426,13 +426,19 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
   signed-in user lacks, and the two need different messages: one is fixed by an
   Entra admin, the other by whoever owns the agent. After granting consent, sign
   out and back in so the session's refresh token reflects it.
-- **Adding a Fabric permission does not prompt for consent on its own.** Sign-in
-  requests Power BI scopes only; the Fabric token is obtained afterwards by
-  redeeming the refresh token for that audience. Entra shows a consent screen
-  only for scopes the app *asks for*, so a newly added Fabric permission can sit
-  unconsented for the session with no visible sign — the symptom is a scope error
-  that persists through sign-out and back in. `AUTH_FORCE_CONSENT=true` forces
-  the prompt on the next sign-in; set it, sign in once, remove it.
+- **Every scope must be requested at sign-in, not merely consented in the
+  portal.** Redeeming a refresh token with `<resource>/.default` returns the
+  scopes from the *original grant* retargeted to the new audience — not whatever
+  has been consented since. A permission added in the portal but absent from the
+  sign-in request never reaches the token, and re-consenting to an unchanged
+  request cannot fix it. This cost real time once: the Fabric token came back
+  with the correct audience and only the three Power BI scopes.
+  So the Fabric item scopes live in `POWERBI_SCOPES` in `auth.ts`. They carry the
+  Power BI identifier URI because Power BI and Fabric are one resource
+  application, which is also why they can share a request without Entra
+  rejecting it as spanning multiple resources.
+- `AUTH_FORCE_CONSENT=true` adds `prompt=consent` for the rare case where a
+  grant needs refreshing without a scope change. Set it, sign in once, remove it.
 - **A scope failure reports the scopes the token actually carried.** "Add the
   permission" is useless advice to someone who already added it; what resolves it
   is seeing whether the scope reached the token at all.

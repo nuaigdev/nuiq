@@ -17,10 +17,28 @@ import { getTenantConfig } from "./tenant-config";
  * the real person rather than an identity NuIQ asserts on their behalf.
  */
 
+/**
+ * Delegated scopes requested at sign-in.
+ *
+ * All of these belong to one resource application. Power BI and Fabric share
+ * it, which is why the Fabric item scopes carry the Power BI identifier URI —
+ * and why they can sit in the same request without Entra rejecting it as
+ * spanning multiple resources.
+ *
+ * The Fabric item scopes MUST be requested here, not just consented in the
+ * portal. Redeeming a refresh token with `<resource>/.default` returns the
+ * scopes from the *original grant* retargeted to the new audience — not
+ * whatever has been consented since. A permission added in the portal but never
+ * requested at sign-in therefore never reaches the Fabric token, and no amount
+ * of re-consenting to an unchanged request will fix it.
+ */
 const POWERBI_SCOPES = [
   "https://analysis.windows.net/powerbi/api/Report.Read.All",
   "https://analysis.windows.net/powerbi/api/Dataset.Read.All",
   "https://analysis.windows.net/powerbi/api/Workspace.Read.All",
+  // Asking a data agent a question executes a Fabric item (§5 Tab 3).
+  "https://analysis.windows.net/powerbi/api/Item.Read.All",
+  "https://analysis.windows.net/powerbi/api/Item.Execute.All",
 ];
 
 // offline_access is what makes Entra issue a refresh token. Without it the
