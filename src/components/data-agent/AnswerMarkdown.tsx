@@ -180,17 +180,17 @@ export function AnswerMarkdown({
           // Wide results are the norm, not the exception. The table scrolls
           // inside its own frame so it can never widen the panel.
           table: ({ children }) => (
-            <div className="mb-4 overflow-x-auto rounded-lg border border-agent-line last:mb-0">
+            <div className="mb-4 overflow-x-auto rounded-lg border border-canvas-line last:mb-0">
               <table className="w-full border-collapse text-[13.5px] tabular-nums">
                 {children}
               </table>
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-agent-raised">{children}</thead>
+            <thead className="bg-canvas-raised">{children}</thead>
           ),
           tr: ({ children }) => (
-            <tr className="border-b border-agent-line last:border-0 even:bg-agent-raised/50">
+            <tr className="border-b border-canvas-line last:border-0 even:bg-canvas-raised/50">
               {children}
             </tr>
           ),
@@ -209,7 +209,7 @@ export function AnswerMarkdown({
             className?.startsWith("language-") || className?.includes("hljs") ? (
               <code className={className}>{children}</code>
             ) : (
-              <code className="rounded-[5px] border border-agent-line bg-agent-raised px-[5px] py-[2px] font-mono text-[12.5px] text-peak-700">
+              <code className="rounded-[5px] border border-canvas-line bg-canvas-raised px-[5px] py-[2px] font-mono text-[12.5px] text-peak-700">
                 {children}
               </code>
             ),
@@ -230,7 +230,7 @@ export function AnswerMarkdown({
               {children}
             </blockquote>
           ),
-          hr: () => <hr className="my-6 border-agent-line" />,
+          hr: () => <hr className="my-6 border-canvas-line" />,
         }}
       >
         {children}

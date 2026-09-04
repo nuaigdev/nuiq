@@ -142,7 +142,7 @@ export function MessageList() {
               scrollToEnd(true);
               setUnread(false);
             }}
-            className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-agent-line bg-surface px-3 py-1.5 text-[12.5px] font-medium text-ink shadow-[0_4px_16px_rgba(15,20,32,0.1)] transition-colors hover:border-peak-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"
+            className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-canvas-line bg-surface px-3 py-1.5 text-[12.5px] font-medium text-ink shadow-[0_4px_16px_rgba(15,20,32,0.1)] transition-colors hover:border-peak-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"
           >
             <ArrowDown aria-hidden className="h-3.5 w-3.5 text-peak-600" />
             New message

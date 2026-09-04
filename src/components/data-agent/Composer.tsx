@@ -51,7 +51,7 @@ export function Composer({ suggestions }: { suggestions: string[] }) {
   }, [armed, busy, ask, draft]);
 
   return (
-    <div className="shrink-0 border-t border-agent-line bg-surface px-4 pb-4 pt-3 sm:px-5">
+    <div className="shrink-0 border-t border-canvas-line bg-surface px-4 pb-4 pt-3 sm:px-5">
       {/*
        * Openers, only while there is nothing to read yet. Once someone has
        * asked their own question these have done their job, and bringing them
@@ -72,7 +72,7 @@ export function Composer({ suggestions }: { suggestions: string[] }) {
                 <button
                   type="button"
                   onClick={() => applySuggestion(suggestion)}
-                  className="rounded-full border border-agent-line bg-agent-raised px-3 py-1.5 text-left text-[12.5px] leading-snug text-ink-muted transition-colors hover:border-peak-300 hover:bg-peak-50 hover:text-peak-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"
+                  className="rounded-full border border-canvas-line bg-canvas-raised px-3 py-1.5 text-left text-[12.5px] leading-snug text-ink-muted transition-colors hover:border-peak-300 hover:bg-peak-50 hover:text-peak-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"
                 >
                   {suggestion}
                 </button>
@@ -90,8 +90,8 @@ export function Composer({ suggestions }: { suggestions: string[] }) {
       >
         <div
           className={cn(
-            "flex items-end gap-2 rounded-2xl border bg-agent-raised px-2 py-2 transition-[border-color,box-shadow] duration-150",
-            "border-agent-line",
+            "flex items-end gap-2 rounded-2xl border bg-canvas-raised px-2 py-2 transition-[border-color,box-shadow] duration-150",
+            "border-canvas-line",
             "focus-within:border-peak-400 focus-within:bg-surface focus-within:shadow-[0_0_0_3px_rgba(59,116,240,0.13)]",
           )}
         >
@@ -125,7 +125,7 @@ export function Composer({ suggestions }: { suggestions: string[] }) {
                   ? "Stop waiting. The question keeps running in Fabric."
                   : "Show the rest of the answer"
               }
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-agent-line bg-surface text-ink-muted transition-colors hover:border-peak-300 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-canvas-line bg-surface text-ink-muted transition-colors hover:border-peak-300 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"
             >
               <Square aria-hidden className="h-3.5 w-3.5 fill-current" />
               <span className="sr-only">
@@ -141,7 +141,7 @@ export function Composer({ suggestions }: { suggestions: string[] }) {
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500",
                 armed
                   ? "bg-peak-600 text-white hover:bg-peak-700"
-                  : "bg-agent-line text-ink-subtle",
+                  : "bg-canvas-line text-ink-subtle",
               )}
             >
               <ArrowUp aria-hidden className="h-4 w-4" strokeWidth={2.4} />

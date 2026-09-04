@@ -146,9 +146,9 @@ summary {
    * stay inside the peak facet family — this is the same product, not a
    * separately themed screen.
    */
-  --color-agent-ground: #eef2fa;
-  --color-agent-raised: #f6f8fd;
-  --color-agent-line: #dde4f2;
+  --color-canvas-ground: #eef2fa;
+  --color-canvas-raised: #f6f8fd;
+  --color-canvas-line: #dde4f2;
 }
 
 /* --- the viewport lock ---------------------------------------------------- */
@@ -263,7 +263,7 @@ html[data-app-focus="on"] .app-footer {
 }
 
 /* Placeholder for a table or code block that has not finished arriving. */
-@keyframes agent-shimmer {
+@keyframes canvas-shimmer {
   from {
     background-position: -180% 0;
   }
@@ -272,15 +272,15 @@ html[data-app-focus="on"] .app-footer {
   }
 }
 
-.agent-shimmer {
+.canvas-shimmer {
   background-image: linear-gradient(
     100deg,
-    var(--color-agent-raised) 30%,
+    var(--color-canvas-raised) 30%,
     #e9eefb 48%,
-    var(--color-agent-raised) 66%
+    var(--color-canvas-raised) 66%
   );
   background-size: 220% 100%;
-  animation: agent-shimmer 1.4s linear infinite;
+  animation: canvas-shimmer 1.4s linear infinite;
 }
 
 /* --- code blocks ---------------------------------------------------------- */

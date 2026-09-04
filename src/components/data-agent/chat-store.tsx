@@ -8,10 +8,10 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 
 import { askDataAgentAction } from "@/app/data-agents/actions";
+import { useFocusMode } from "@/lib/focus-mode";
 
 import { playArrivalPing, unlockAudio } from "./ping";
 
@@ -68,24 +68,6 @@ export function useChat() {
 
 const FULLSCREEN_KEY = "nuiq:agent-focus";
 
-/*
- * The stored preference is read through useSyncExternalStore rather than in an
- * effect: it gives the server and the hydrating client the same answer (docked)
- * and then swaps to the stored one, instead of rendering one thing and
- * correcting it. Nothing outside this tab writes the key, so the subscription
- * has nothing to listen to.
- */
-const noopSubscribe = () => () => {};
-
-function readStoredFullscreen(): boolean {
-  try {
-    return sessionStorage.getItem(FULLSCREEN_KEY) === "1";
-  } catch {
-    // Storage blocked. Start docked; nothing is lost.
-    return false;
-  }
-}
-
 let counter = 0;
 function nextId() {
   counter += 1;
@@ -112,13 +94,8 @@ export function AgentChatProvider({
   // toggle in the panel header turns it off.
   const [soundOn, setSoundOn] = useState(true);
 
-  const storedFullscreen = useSyncExternalStore(
-    noopSubscribe,
-    readStoredFullscreen,
-    () => false,
-  );
-  const [chosenFullscreen, setChosenFullscreen] = useState<boolean | null>(null);
-  const fullscreen = chosenFullscreen ?? storedFullscreen;
+  const { focus: fullscreen, toggleFocus: toggleFullscreen } =
+    useFocusMode(FULLSCREEN_KEY);
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const soundRef = useRef(true);
@@ -133,34 +110,6 @@ export function AgentChatProvider({
   const registerInput = useCallback((el: HTMLTextAreaElement | null) => {
     inputRef.current = el;
   }, []);
-
-  /* --- fullscreen -------------------------------------------------------- */
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (fullscreen) root.setAttribute("data-app-focus", "on");
-    else root.removeAttribute("data-app-focus");
-    try {
-      sessionStorage.setItem(FULLSCREEN_KEY, fullscreen ? "1" : "0");
-    } catch {
-      // Not remembering the preference is not worth failing over.
-    }
-    return () => root.removeAttribute("data-app-focus");
-  }, [fullscreen]);
-
-  const toggleFullscreen = useCallback(
-    () => setChosenFullscreen((on) => !(on ?? readStoredFullscreen())),
-    [],
-  );
-
-  useEffect(() => {
-    if (!fullscreen) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setChosenFullscreen(false);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [fullscreen]);
 
   /* --- the elapsed counter ----------------------------------------------- */
 

@@ -8,7 +8,7 @@ import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
 
 const controlClass =
-  "flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle transition-colors hover:bg-agent-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500";
+  "flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle transition-colors hover:bg-canvas-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500";
 
 /**
  * The conversation itself: a fixed header, the message list — the only thing on
@@ -23,7 +23,7 @@ export function ChatPanel({ suggestions }: { suggestions: string[] }) {
       aria-label={`Conversation with ${agentName}`}
       className="flex min-h-0 flex-1 flex-col bg-surface"
     >
-      <header className="flex shrink-0 items-center gap-2.5 border-b border-agent-line px-4 py-3 sm:px-5">
+      <header className="flex shrink-0 items-center gap-2.5 border-b border-canvas-line px-4 py-3 sm:px-5">
         <AgentGlyph seed={agentName} className="h-6 w-6 shrink-0" />
         <div className="min-w-0">
           <p className="truncate text-[13.5px] font-medium leading-tight text-ink">

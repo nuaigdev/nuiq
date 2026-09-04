@@ -1,7 +1,8 @@
 "use client";
 
 import { MotionConfig, motion } from "framer-motion";
-import { useEffect } from "react";
+
+import { useViewportLock } from "@/lib/focus-mode";
 
 import { AgentChatProvider, useChat } from "./chat-store";
 import { ChatPanel } from "./ChatPanel";
@@ -27,15 +28,6 @@ type WorkspaceProps = {
   agents: AgentLink[];
 };
 
-/** Locks the page for as long as this route is mounted, and no longer. */
-function useViewportLock() {
-  useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute("data-app-lock", "viewport");
-    return () => root.removeAttribute("data-app-lock");
-  }, []);
-}
-
 function Workspace({
   agentId,
   description,
@@ -49,10 +41,10 @@ function Workspace({
     <div
       className={
         fullscreen
-          ? "h-full bg-agent-ground"
+          ? "h-full bg-canvas-ground"
           : // The conversation is a docked panel, not a stretched page: capped
             // in width, and given the majority of the space to its left.
-            "grid h-full bg-agent-ground lg:grid-cols-[minmax(0,1fr)_minmax(420px,32rem)]"
+            "grid h-full bg-canvas-ground lg:grid-cols-[minmax(0,1fr)_minmax(420px,32rem)]"
       }
     >
       {fullscreen ? null : (
@@ -70,7 +62,7 @@ function Workspace({
         className={
           fullscreen
             ? "fixed inset-0 z-[60] flex flex-col bg-surface"
-            : "flex min-h-0 flex-col border-agent-line bg-surface shadow-[-1px_0_0_0_var(--color-agent-line),-12px_0_28px_-24px_rgba(15,20,32,0.35)]"
+            : "flex min-h-0 flex-col border-canvas-line bg-surface shadow-[-1px_0_0_0_var(--color-canvas-line),-12px_0_28px_-24px_rgba(15,20,32,0.35)]"
         }
       >
         {fullscreen ? null : (

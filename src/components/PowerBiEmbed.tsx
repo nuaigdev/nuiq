@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { useSyncExternalStore } from "react";
 
+import type { PowerBiReportViewProps } from "./PowerBiReportView";
+
 /**
  * Browser-only wrapper around the Power BI embed.
  *
@@ -23,6 +25,8 @@ import { useSyncExternalStore } from "react";
  *     triggered by a real browser, after hydration.
  *
  * Do not remove either guard, and do not import PowerBiReportView directly.
+ * The props type is imported with `import type`, which TypeScript erases, so it
+ * pulls nothing into the graph.
  */
 const PowerBiReportView = dynamic(() => import("./PowerBiReportView"), {
   ssr: false,
@@ -42,30 +46,12 @@ function useIsBrowser(): boolean {
   );
 }
 
-function EmbedFrame({ label }: { label: string }) {
-  return (
-    <div
-      role="status"
-      aria-label={label}
-      className="flex h-[78vh] w-full items-center justify-center bg-surface-sunken"
-    >
-      <span className="text-sm text-ink-muted">{label}</span>
-    </div>
-  );
-}
-
-export function PowerBiEmbed(props: {
-  reportId: string;
-  embedUrl: string;
-  accessToken: string;
-  pageName?: string;
-  reportName: string;
-}) {
+export function PowerBiEmbed(props: PowerBiReportViewProps) {
   const isBrowser = useIsBrowser();
 
-  if (!isBrowser) {
-    return <EmbedFrame label="Loading dashboard…" />;
-  }
+  // The skeleton above this in the frame is already showing; rendering nothing
+  // here until hydration keeps the two from stacking.
+  if (!isBrowser) return null;
 
   return <PowerBiReportView {...props} />;
 }

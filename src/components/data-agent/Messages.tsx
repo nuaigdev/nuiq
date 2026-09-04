@@ -93,12 +93,12 @@ function BlockSkeleton({ kind }: { kind: Exclude<PendingBlock, null> }) {
   }
 
   return (
-    <div className="mt-1 overflow-hidden rounded-lg border border-agent-line">
-      <div className="agent-shimmer h-8 border-b border-agent-line" />
+    <div className="mt-1 overflow-hidden rounded-lg border border-canvas-line">
+      <div className="canvas-shimmer h-8 border-b border-canvas-line" />
       {[0, 1, 2].map((row) => (
         <div
           key={row}
-          className="agent-shimmer h-8 border-b border-agent-line last:border-0"
+          className="canvas-shimmer h-8 border-b border-canvas-line last:border-0"
           style={{ animationDelay: `${row * 120}ms` }}
         />
       ))}
