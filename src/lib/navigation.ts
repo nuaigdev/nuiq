@@ -24,7 +24,7 @@ type NavDefinition = NavItem & {
 const NAV_DEFINITIONS: NavDefinition[] = [
   {
     href: "/",
-    label: "Home Page",
+    label: "Home",
     isConfigured: () => true,
   },
   {

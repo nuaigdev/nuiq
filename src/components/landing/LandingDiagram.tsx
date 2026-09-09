@@ -106,20 +106,28 @@ function Packet({
 }
 
 /**
- * HTML centred over a box, in the diagram's own coordinates. Pointer events are
- * off so the SVG rect underneath stays the hit target for hover and clicks.
+ * HTML laid out over a box, in the diagram's own coordinates. Pointer events
+ * are off so the SVG rect underneath stays the hit target for hover and clicks.
+ *
+ * Centred by default. The source rows on the left align left instead: twelve
+ * stacked rows of differing name length read as ragged when each is centred
+ * individually, where a shared left edge gives the column one clean line to
+ * scan down. The platform stages and destination cards stay centred — they are
+ * few, and each is its own object rather than one item in a list.
  */
 function BoxContent({
   x,
   y,
   w,
   h,
+  align = "center",
   children,
 }: {
   x: number;
   y: number;
   w: number;
   h: number;
+  align?: "center" | "left";
   children: React.ReactNode;
 }) {
   return (
@@ -130,7 +138,11 @@ function BoxContent({
       height={h}
       style={{ pointerEvents: "none" }}
     >
-      <div className="flex h-full w-full flex-col items-center justify-center text-center">
+      <div
+        className={`flex h-full w-full flex-col justify-center ${
+          align === "left" ? "items-start text-left" : "items-center text-center"
+        }`}
+      >
         {children}
       </div>
     </foreignObject>
@@ -335,8 +347,9 @@ export function LandingDiagram() {
               y={source.y - SOURCE_BOX.h / 2}
               w={SOURCE_BOX.w}
               h={SOURCE_BOX.h}
+              align="left"
             >
-              <span className="flex items-center justify-center gap-2 px-3">
+              <span className="flex items-center justify-start gap-2.5 px-3">
                 <SourceMark logo={source.logo} glyph={source.glyph} size={23} />
                 <span className="text-[13.5px] font-medium leading-none text-peak-100">
                   {source.name}

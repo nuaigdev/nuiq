@@ -268,7 +268,7 @@ Every portal page renders inside one persistent shell: **top-level navigation pa
 - **Top nav only — no side nav.** The navigation menu is a horizontal bar across the top of the shell. Do not build a left sidebar, a collapsible rail, a hamburger drawer on desktop, or a split top+side arrangement. Four destinations fit comfortably in a top bar; a sidebar would spend horizontal space that Tabs 1 and 2 need — the React Flow canvas and embedded Power BI reports both want the full width.
 - The nav panel is **always visible on every page**, including error, loading, and empty states. A user must never land somewhere with no way back to the other three tabs. Two pages are exempt, both deliberately: the pre-authentication sign-in screen, which has nowhere to navigate to yet, and the landing page (Tab 1), which is a full-bleed diagram whose own cards are the way in.
 - **The shell lives in the `(shell)` route group, not the root layout.** The root layout owns `<html>`, the font and the login gate; `src/app/(shell)/layout.tsx` owns the nav and the footer. A route group changes no URLs. Any new portal page belongs inside `(shell)` — a page added directly under `src/app/` renders with no nav and no footer credit, which is right for exactly one page and wrong for every other.
-- It carries exactly the four top-level destinations, in the order given below (Home Page → Power BI Dashboards → Conversational Data Agent → Advanced AI Agents). Order is fixed; the home diagram first, then the reporting on the data, then the two ways of asking questions of it. **Labels and routes are decoupled**: the routes stay `/`, `/dashboards`, `/data-agents`, `/ai-agents` so links already shared keep working, while the labels are the product names above. Renaming a label must not rename a route.
+- It carries exactly the four top-level destinations, in the order given below (Home → Power BI Dashboards → Conversational Data Agent → Advanced AI Agents). Order is fixed; the home diagram first, then the reporting on the data, then the two ways of asking questions of it. **Labels and routes are decoupled**: the routes stay `/`, `/dashboards`, `/data-agents`, `/ai-agents` so links already shared keep working, while the labels are the product names above. Renaming a label must not rename a route.
 - **The client name is not in the header.** It was, beside the mark, and was
   removed by explicit decision — do not add it back. The client's own
   `clientLogoUrl` still renders there when one is configured, behind a divider;
@@ -324,11 +324,16 @@ wants a page of its own gets a route in `(shell)`.
   what make the page read as one composition rather than three adjacent
   columns — a change to any of the spacing constants has to preserve them, and
   `AXIS_Y` exists so the relationship is stated rather than implied.
-- **Box contents are centred HTML in a `foreignObject`, not SVG text.** SVG
-  cannot centre a mark and a label as a group without knowing the rendered text
-  width, and it cannot know it; flexbox can. Coordinates stay in the SVG, layout
+- **Box contents are HTML in a `foreignObject`, not SVG text.** SVG cannot
+  centre a mark and a label as a group without knowing the rendered text width,
+  and it cannot know it; flexbox can. Coordinates stay in the SVG, layout
   happens in HTML, nothing is measured. `pointer-events` is off on the overlay
   so the rect underneath stays the hit target.
+- **The platform stages and destination cards centre; the twelve source rows
+  align left.** Twelve stacked rows of differing name length read as ragged when
+  each is centred on its own, where a shared left edge gives the column one
+  clean line to scan down. The stages and cards are few, and each is its own
+  object rather than one item in a list, so centring suits them.
 - **The entrance animation fades, it does not translate.** Safari has
   long-standing bugs positioning a `foreignObject` inside a transformed SVG
   group, and most of these groups now contain one. Do not add `y`/`x` motion
