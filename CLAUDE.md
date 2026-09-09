@@ -179,8 +179,10 @@ means `BLOB_READ_WRITE_TOKEN` in `.env.local` (`vercel env pull .env.local`).
 ```
 config/{CLIENT_ID}/tenant.json   non-secret client config (§3)
 public/                          nuiq-logo.png, nuaig-logo.svg, nuaig-logo-white.svg (§8)
-src/app/page.tsx                 Home hub (Tab 1) — animated hero + section cards
-src/app/                         root layout = the shell; one folder per tab (§5)
+src/app/page.tsx                 Landing page (Tab 1) — the diagram, no chrome
+src/app/layout.tsx               <html>, font, login gate — no visible chrome
+src/app/(shell)/layout.tsx       TopNav + Footer; every portal tab lives here (§5)
+src/components/landing/          the landing diagram: data, glyphs, SVG
 src/components/                  TopNav, Footer, PageShell
 src/lib/tenant-config.ts         CLIENT_ID -> config document, validation, fail-loud
 src/lib/navigation.ts            the four tabs, fixed order, config-driven visibility
@@ -188,7 +190,7 @@ src/lib/session.ts               signed-in user + delegated Power BI token
 src/lib/config-store/            ConfigStore interface + provider adapters (§3)
 src/lib/dashboard-store.ts       dashboards derived from config (see §5 Tab 2)
 src/lib/admin.ts                 who may administer this deployment (§6)
-src/app/dashboards/manage/       admin add/remove screen, role-gated
+src/app/(shell)/dashboards/manage/  admin add/remove screen, role-gated
 scripts/seed-config.ts           one-off seeding of a client's config document
 ```
 
@@ -261,11 +263,12 @@ deliberately rather than discovering it during a compliance review.
 
 ### App shell & top-level navigation
 
-Every page renders inside one persistent shell: **top-level navigation panel** above, content below, **NuAIg footer credit** always present (§8). The shell is built once, in the App Router root layout — tabs render inside it, never alongside or in place of it.
+Every portal page renders inside one persistent shell: **top-level navigation panel** above, content below, **NuAIg footer credit** always present (§8). The shell is built once, in `src/app/(shell)/layout.tsx` — tabs render inside it, never alongside or in place of it. The landing page (Tab 1) sits outside that group and is the one page with no shell; see below and §8.
 
 - **Top nav only — no side nav.** The navigation menu is a horizontal bar across the top of the shell. Do not build a left sidebar, a collapsible rail, a hamburger drawer on desktop, or a split top+side arrangement. Four destinations fit comfortably in a top bar; a sidebar would spend horizontal space that Tabs 1 and 2 need — the React Flow canvas and embedded Power BI reports both want the full width.
-- The nav panel is **always visible on every page**, including error, loading, and empty states. A user must never land somewhere with no way back to the other three tabs. The one exception is the pre-authentication sign-in screen, which has no nav because there is nowhere to navigate to yet — the NuAIg footer credit still appears there, because §8 is not conditional.
-- It carries exactly the four top-level destinations, in the order given below (Home → Dashboards → Data Agents → AI Agents). Order is fixed; Home is the hub, then the reporting on the data, then the two ways of asking questions of it.
+- The nav panel is **always visible on every page**, including error, loading, and empty states. A user must never land somewhere with no way back to the other three tabs. Two pages are exempt, both deliberately: the pre-authentication sign-in screen, which has nowhere to navigate to yet, and the landing page (Tab 1), which is a full-bleed diagram whose own cards are the way in.
+- **The shell lives in the `(shell)` route group, not the root layout.** The root layout owns `<html>`, the font and the login gate; `src/app/(shell)/layout.tsx` owns the nav and the footer. A route group changes no URLs. Any new portal page belongs inside `(shell)` — a page added directly under `src/app/` renders with no nav and no footer credit, which is right for exactly one page and wrong for every other.
+- It carries exactly the four top-level destinations, in the order given below (Landing → Live Power BI Dashboards → Conversational Data Agent → Advanced AI Agents). Order is fixed; the landing diagram first, then the reporting on the data, then the two ways of asking questions of it. **Labels and routes are decoupled**: the routes stay `/`, `/dashboards`, `/data-agents`, `/ai-agents` so links already shared keep working, while the labels are the product names above. Renaming a label must not rename a route.
 - **Client identity sits beside the NuIQ mark, not with the user menu.** The
   client's `displayName` (and `clientLogoUrl` when set) answers "which client's
   portal is this" — product context, not user context. Keeping it on the left,
@@ -287,31 +290,56 @@ core destinations and adding a fifth would dilute it. Future secondary pages
 Anything stated about NuAIg on `/about` must be sourced from nuaig.ai. Do not add
 claims, metrics, leadership names, or client names that are not verifiable there.
 
-### Tab 1 — Home (hub)
+### Tab 1 — Landing
 
-Route: `/`. The landing surface and the orientation point for someone who has
-not used the portal before.
+Route: `/`. **The diagram is the entire page.** No nav, no footer, no cards, no
+copy below it — the one thing on screen besides the NuAIg mark is the picture of
+how data reaches the portal. Do not add sections to this page; anything that
+wants a page of its own gets a route in `(shell)`.
 
-- **Hero: an animated picture of the data flow** — source systems (EHR,
-  financial, staffing) → the Fabric warehouse → what NuIQ puts in front of it,
-  with particles travelling the edges on a loop. Built as inline SVG, not a GIF:
-  it stays sharp at any width, weighs kilobytes rather than megabytes, inherits
-  the theme, and honours `prefers-reduced-motion`.
-- **This hero is illustrative, not live lineage.** It draws the same shape for
-  every client and reads nothing from the warehouse. Do not present it as, or
-  quietly grow it into, real lineage.
-- **Below the hero, the hub lists what is in the portal**: dashboards, Fabric
-  data agents, and AI agents, each as a card naming the real configured items and
-  linking through. These read from config and the dashboard store — never
-  hardcode the counts or names.
+- **The diagram**: twelve senior living source systems on the left, each with
+  its vendor mark → a secure ingestion gate they all converge on → the Microsoft
+  Fabric platform as a five-stage stack (Ingestion, Transformation, Warehouse /
+  Lakehouse, **Knowledge / Semantic Layer**, Governance & Security) → three
+  destinations on the right. Inline SVG in one coordinate space
+  (`src/components/landing/landing-data.ts`), so the connector curves are
+  computed from the same numbers that place the boxes and cannot drift.
+- **The three destinations are real links** to `/dashboards`, `/data-agents` and
+  `/ai-agents`. They keep a genuine `href` and add client-side navigation on
+  click, so middle-click and copy-link behave like links.
+- **The outputs read from the semantic layer, not the raw lakehouse** — stage 4
+  is where the outbound edges start, and it is emphasised for that reason. Keep
+  that relationship if the stack is ever re-drawn.
+- **The NuAIg mark is the page's identity**, centred above the diagram (§8).
+  The NuIQ mark does not appear here; it is the identity inside the portal.
+- **Motion is the point.** Particles travel every edge, a stage indicator sweeps
+  1 → 5 down the platform stack, the ingestion gate pulses, and the background is
+  a slow-drifting field of the chrome gradient over a fine grid. Hovering a
+  source or a destination brightens its own edge and dims the rest.
+- **Reduced motion has to be handled in two places.** The CSS animations are
+  stopped by the `prefers-reduced-motion` rule in `globals.css`; the SVG's SMIL
+  particles are **not** — that rule only reaches CSS animation — so they are
+  gated on `useReducedMotion()` in React. Adding SMIL anywhere else needs the
+  same treatment.
+- **The diagram is illustrative, not live lineage.** It draws the same shape for
+  every client and reads nothing from the warehouse or from config, so a named
+  vendor is not a claim that this client runs it. Do not present it as, or
+  quietly grow it into, real lineage. If it should instead name each client's own
+  systems, that list belongs in `tenant.json`, not in the component.
+- **Vendor marks live in `/public/logos`** as small PNGs, referenced by absolute
+  path. Where no mark could be sourced (CareSage, FullCount) the tile draws a
+  lettermark, and where the row is a category rather than a product (Finance /
+  GL, Payroll / HR, Pharmacy, Other systems) it draws a flat geometric glyph.
+  Never substitute a similarly-named company's logo.
 
 **Open question — the lineage explorer has no home.** §1 still names "see the
 data model and how data flows" as a core purpose, and the design below (schema
 introspection, Fabric pipeline lineage, the hand-maintained fallback, React Flow
 with clickable nodes) was Tab 1's job before it became the hub. That work is now
 unplaced: it is too deep to live inside the hub hero, and there is no longer a
-tab for it. Decide where it goes before building it — a sub-route of Home
-(`/lineage`) is the obvious candidate — rather than assuming it was dropped.
+tab for it. Decide where it goes before building it — a `(shell)` route at
+`/lineage` is the obvious candidate — rather than assuming it was dropped. It
+does not belong on the landing page, which is now closed to additions.
 
 Retained design for whenever it is built. Since Purview isn't available, lineage
 is sourced by **one or both** of:
@@ -534,14 +562,15 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 ## 8. Branding & footer requirements
 
 - Footer must always read **"Powered by NuAIg"** with the NuAIg logo (`/public/nuaig-logo.svg`, or `/public/nuaig-logo-white.svg` on a dark footer), on every page, in every client deployment. This is client-agnostic and must not be configurable away via `tenant.json`.
-- **The NuAIg logos are footer-only.** `nuaig-logo.svg` / `nuaig-logo-white.svg` appear in the footer credit and nowhere else — not in the header/nav, not as the favicon, not as a loading or watermark graphic, not in the browser tab title bar. NuAIg is the builder's credit, not the product's identity.
+- **The landing page is the one exception, by explicit decision.** It carries no footer — and therefore no footer credit — because it carries no chrome at all. Instead the NuAIg mark is the page's own identity, centred above the diagram. The credit is not lost, it is promoted. This exemption is for `src/app/page.tsx` alone; every other route renders inside `(shell)` and keeps the footer.
+- **The NuAIg logos are otherwise footer-only.** `nuaig-logo.svg` / `nuaig-logo-white.svg` appear in the footer credit and, on the landing page, as that page's mark — and nowhere else. Not in the header/nav of the portal tabs, not as the favicon, not as a loading or watermark graphic, not in the browser tab title bar. NuAIg is the builder's credit; inside the portal proper the identity is still NuIQ's.
 - The NuIQ mark (`/public/nuiq-logo.png`, the origami peak) is the app's logo and the only logo used for the app itself — header/nav, favicon, loading/empty states, social preview. Per-client branding (`branding.primaryColor`, `branding.clientLogoUrl` in `tenant.json`) may customize accent color and optionally show a client logo alongside NuIQ's — but never replace the NuIQ mark or the NuAIg footer credit.
 - **Asset placement is fixed.** All three logos live in `/public` and are referenced by absolute path (`/nuiq-logo.png`, `/nuaig-logo.svg`, `/nuaig-logo-white.svg`) — do not copy them into `src/`, inline them as base64, or import them as modules.
 - The NuAIg wordmark's accent color is `#069BDF` (the only color that differs from the wordmark fill between the light and dark logo variants). It belongs to the NuAIg mark itself and stays in the footer with it — do not adopt it as a NuIQ accent. NuIQ's own palette stays in the deep indigo/blue facet family of `/public/nuiq-logo.png`.
 - **Gradients belong to the app chrome, not to content.** The header, footer, and
-  Home hero use one indigo gradient family (`.chrome-header` / `.chrome-footer`
-  in `globals.css`) so the page is bracketed by the same material instead of two
-  flat slabs. Content surfaces stay flat — data should never compete with
+  the whole landing page use one indigo gradient family (`.chrome-header` /
+  `.chrome-footer` / `.landing-stage` in `globals.css`) so the product is built
+  from the same material throughout instead of unrelated flat slabs. Content surfaces stay flat — data should never compete with
   decoration. No glows, no gradient text beyond the wordmark, no gradient on
   cards or charts.
 - **The NuIQ wordmark carries a gradient; the mark never does.** The word "NuIQ" in the header and footer is rendered with a restrained white -> light blue -> indigo gradient (`bg-clip-text`). This is a deliberate, approved exception to the "no gradients" rule below, and applies to the *text* only — the origami mark PNG stays flat and untouched. Do not extend gradients to the mark, to backgrounds, or to UI chrome.

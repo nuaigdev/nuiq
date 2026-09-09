@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getDataAgents } from "@/lib/data-agent-store";
 import { getTenantConfig } from "@/lib/tenant-config";
 
-export const metadata = { title: "Data Agents" };
+export const metadata = { title: "Conversational Data Agent" };
 
 /** Stable facet pattern per agent, so a tile always looks the same. */
 function hashOf(value: string): number {
@@ -42,7 +42,7 @@ export default async function DataAgentsPage() {
             Microsoft Fabric
           </p>
           <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-tight text-ink">
-            Data Agents
+            Conversational Data Agent
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
             Ask questions of the warehouse in plain language and get an answer

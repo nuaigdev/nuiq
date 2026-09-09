@@ -6,7 +6,7 @@ import {
   addDataAgentAction,
   removeDataAgentAction,
   type ManageState,
-} from "@/app/data-agents/actions";
+} from "@/app/(shell)/data-agents/actions";
 
 const FIELD =
   "w-full rounded border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-peak-600 focus:outline-none";

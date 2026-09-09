@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import {
   removeDashboardAction,
   type ActionState,
-} from "@/app/dashboards/actions";
+} from "@/app/(shell)/dashboards/actions";
 
 /**
  * Removes one dashboard. Surfaces the action's own error — notably the

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { addDashboardAction, type ActionState } from "@/app/dashboards/actions";
+import { addDashboardAction, type ActionState } from "@/app/(shell)/dashboards/actions";
 
 const FIELD =
   "w-full rounded border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted/50 focus:border-peak-600 focus:outline-none";

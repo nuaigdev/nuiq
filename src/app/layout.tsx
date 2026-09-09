@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
-import { AuthControls } from "@/components/AuthControls";
-import { Footer } from "@/components/Footer";
 import { SignInScreen } from "@/components/SignInScreen";
-import { TopNav } from "@/components/TopNav";
-import { getDefaultRoute, getNavItems } from "@/lib/navigation";
 import { getSession } from "@/lib/session";
 import { getTenantConfig } from "@/lib/tenant-config";
 
@@ -18,8 +14,12 @@ const inter = Inter({
 });
 
 /**
- * The one persistent shell (CLAUDE.md §5): top nav above, content below,
- * NuAIg footer always present. Tabs render inside this — never replace it.
+ * The document and the login gate — nothing visible of its own.
+ *
+ * The portal's chrome (top nav, footer credit) lives in the `(shell)` route
+ * group instead, so the landing page at `/` can be the full-bleed diagram it is
+ * meant to be. Anything added directly under `src/app/` therefore renders bare;
+ * portal pages belong in `(shell)`.
  */
 
 /**
@@ -61,25 +61,17 @@ export default async function RootLayout({
         }
       >
         {session.isAuthenticated ? (
-          <>
-            <TopNav
-              items={getNavItems(config)}
-              defaultRoute={getDefaultRoute()}
-              clientName={config.displayName}
-              clientLogoUrl={config.branding.clientLogoUrl || undefined}
-              authControls={<AuthControls />}
-            />
-            <main className="app-main flex-1">{children}</main>
-            <Footer />
-          </>
+          children
         ) : (
           /*
            * The login gate for the whole portal (CLAUDE.md §6).
            *
            * `children` is never rendered while signed out, so no page below can
            * put a client's dashboards, agents or name in front of an anonymous
-           * visitor. Enforcing it here rather than per page means a new route
-           * cannot forget to be protected — it is behind the gate by existing.
+           * visitor — the landing page and its diagram included. Enforcing it
+           * here rather than per page means a new route cannot forget to be
+           * protected: it is behind the gate by existing. src/proxy.ts stops the
+           * request even earlier; this is the second layer, not the only one.
            * The auth route handlers are unaffected: route handlers do not render
            * inside layouts, so sign-in itself still works.
            */

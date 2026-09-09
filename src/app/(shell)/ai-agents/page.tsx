@@ -1,7 +1,7 @@
 import { NotWiredYet, PageShell } from "@/components/PageShell";
 import { getTenantConfig } from "@/lib/tenant-config";
 
-export const metadata = { title: "AI Agents" };
+export const metadata = { title: "Advanced AI Agents" };
 
 const TYPE_LABELS: Record<string, string> = {
   foundry: "Azure AI Foundry",
@@ -21,7 +21,7 @@ export default async function AiAgentsPage() {
   return (
     <PageShell
       eyebrow="Foundry & Copilot"
-      title="AI Agents"
+      title="Advanced AI Agents"
       intro="Assistants for the work that reaches past the warehouse — drafting, summarising, guiding a process, or pulling from systems the reporting layer never sees. Built on Azure AI Foundry, Copilot Studio, and Power Platform, so each one appears in whatever form suits it."
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 
-import { askDataAgentAction } from "@/app/data-agents/actions";
+import { askDataAgentAction } from "@/app/(shell)/data-agents/actions";
 import { useFocusMode } from "@/lib/focus-mode";
 
 import { playArrivalPing, unlockAudio } from "./ping";

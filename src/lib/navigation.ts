@@ -3,9 +3,9 @@ import type { TenantConfig } from "./tenant-config";
 /**
  * The four top-level destinations (CLAUDE.md §5).
  *
- * Home is the hub; the rest are ordered as the reporting on the data, then the
- * two ways of asking questions of it. Do not reorder these as a cosmetic
- * change.
+ * Landing is the diagram; the rest are ordered as the reporting on the data,
+ * then the two ways of asking questions of it. Do not reorder these as a
+ * cosmetic change.
  *
  * A tab the client has not configured hides itself rather than rendering empty.
  * Hiding is presentation only — it is never access control. Any route that a
@@ -24,26 +24,26 @@ type NavDefinition = NavItem & {
 const NAV_DEFINITIONS: NavDefinition[] = [
   {
     href: "/",
-    label: "Home",
+    label: "Landing",
     isConfigured: () => true,
   },
   {
     href: "/dashboards",
-    label: "Dashboards",
+    label: "Live Power BI Dashboards",
     // Always available: an admin can add dashboards from within the tab, so
     // hiding it when config is empty would hide the only way to add the first.
     isConfigured: () => true,
   },
   {
     href: "/data-agents",
-    label: "Data Agents",
+    label: "Conversational Data Agent",
     // Always available: an admin adds the first agent from inside the tab, so
     // hiding it when config is empty would hide the only way to add one.
     isConfigured: () => true,
   },
   {
     href: "/ai-agents",
-    label: "AI Agents",
+    label: "Advanced AI Agents",
     isConfigured: (config) => config.agents.length > 0,
   },
 ];
@@ -54,7 +54,7 @@ export function getNavItems(config: TenantConfig): NavItem[] {
   );
 }
 
-/** Where the NuIQ mark points. Home is always present. */
+/** Where the NuIQ mark points. The landing page is always present. */
 export function getDefaultRoute(): string {
   return "/";
 }
