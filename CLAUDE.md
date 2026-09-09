@@ -317,6 +317,22 @@ wants a page of its own gets a route in `(shell)`.
   the twelve vendor marks and the three destination cards say what each column
   is without being labelled. The drawing is lifted by offsetting the viewBox
   origin, so every coordinate in `landing-data.ts` still means what it says.
+- **Everything is arranged on one axis.** `AXIS_Y` is the vertical centre of the
+  platform, and the twelve sources, the ingestion gate and the three
+  destinations all centre on it too; the platform is horizontally centred on the
+  canvas, so it sits directly under the NuAIg mark. Those four alignments are
+  what make the page read as one composition rather than three adjacent
+  columns — a change to any of the spacing constants has to preserve them, and
+  `AXIS_Y` exists so the relationship is stated rather than implied.
+- **Box contents are centred HTML in a `foreignObject`, not SVG text.** SVG
+  cannot centre a mark and a label as a group without knowing the rendered text
+  width, and it cannot know it; flexbox can. Coordinates stay in the SVG, layout
+  happens in HTML, nothing is measured. `pointer-events` is off on the overlay
+  so the rect underneath stays the hit target.
+- **The entrance animation fades, it does not translate.** Safari has
+  long-standing bugs positioning a `foreignObject` inside a transformed SVG
+  group, and most of these groups now contain one. Do not add `y`/`x` motion
+  back to the stagger; the packets and the stage sweep carry the page.
 - **Motion is the point.** Particles travel every edge, a stage indicator sweeps
   1 → 5 down the platform stack, the ingestion gate pulses, and the background is
   a slow-drifting field of the chrome gradient over a fine grid. Hovering a
@@ -591,6 +607,15 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 - **Prefer the config-as-code lineage fallback over blocking on automation** — if live Fabric metadata extraction isn't wired up yet for a feature, build against the YAML/JSON fallback so the feature still ships, rather than stalling.
 - **Domain terminology matters** — use senior living/LTC-correct terms (community, not "location"; census, not "occupancy count" unless that's genuinely the client's term; falls/elopements/med errors as named metrics) rather than generic SaaS dashboard language.
 - **Don't reintroduce Purview, domain-based routing, or a shared multi-tenant runtime** — these were explicitly decided against; if a task seems to push in that direction, flag it rather than silently building it.
+- **Keep this file current with every change that lands.** If a change alters a
+  rule, a path, a name, or a decision recorded here, update the relevant section
+  in the *same commit* as the code — not afterwards, and not "later". This file
+  is the source of truth, so a commit that leaves it contradicting the code is
+  an incomplete commit: the next session reads the stale rule, treats the new
+  code as a bug, and reverts it. This has already happened once with the
+  branding rules in §8. Where a change deliberately breaks a rule stated here as
+  settled, rewrite the rule and say it was deliberate, rather than leaving the
+  contradiction for someone to discover.
 
 ---
 

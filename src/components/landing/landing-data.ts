@@ -41,7 +41,8 @@ export type SourceSystem = {
 };
 
 const SOURCE_ROW_H = 48;
-const SOURCE_TOP = 82;
+/* Chosen so the twelve rows centre on AXIS_Y, like everything else. */
+const SOURCE_TOP = 96;
 
 const SOURCE_NAMES: Omit<SourceSystem, "y">[] = [
   { name: "PointClickCare", logo: "/logos/pointclickcare.png", glyph: "PC" },
@@ -67,7 +68,7 @@ export const SOURCES: SourceSystem[] = SOURCE_NAMES.map((source, i) => ({
   y: SOURCE_TOP + i * SOURCE_ROW_H,
 }));
 
-export const SOURCE_BOX = { x: 40, w: 262, h: 38 };
+export const SOURCE_BOX = { x: 40, w: 280, h: 38 };
 
 /**
  * The vertical spine every source joins before the ingestion gate.
@@ -77,12 +78,12 @@ export const SOURCE_BOX = { x: 40, w: 262, h: 38 };
  * Routing them orthogonally onto a shared bus is both cleaner and truer: it is
  * what a manifold of feeds into one pipeline actually looks like.
  */
-export const BUS_X = 344;
+export const BUS_X = 360;
 
 export const INGEST_GATE = {
-  x: 408,
+  x: 420,
   y: SOURCE_TOP + ((SOURCE_NAMES.length - 1) * SOURCE_ROW_H) / 2,
-  r: 34,
+  r: 36,
 };
 
 export type PlatformStage = {
@@ -95,8 +96,21 @@ export type PlatformStage = {
   y: number;
 };
 
-export const PLATFORM = { x: 470, w: 470, y: 60, h: 600 };
-export const STAGE_BOX = { x: 496, w: 418, h: 72 };
+/**
+ * The platform is centred on the canvas — PLATFORM.x + PLATFORM.w / 2 is
+ * exactly CANVAS.w / 2 — so it sits directly under the NuAIg mark above the
+ * diagram. If either number changes, the other has to change with it.
+ */
+export const PLATFORM = { x: 565, w: 470, y: 60, h: 600 };
+export const STAGE_BOX = { x: 591, w: 418, h: 72 };
+
+/**
+ * The one horizontal line everything is arranged around: the vertical centre
+ * of the platform, of the twelve sources, of the ingestion gate and of the
+ * three destinations. Keeping all four on it is what makes the diagram read
+ * as one composition rather than three columns that happen to be adjacent.
+ */
+export const AXIS_Y = PLATFORM.y + PLATFORM.h / 2;
 
 const STAGE_TOP = 226;
 const STAGE_ROW_H = 88;

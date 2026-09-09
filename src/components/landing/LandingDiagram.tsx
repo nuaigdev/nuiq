@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import {
+  AXIS_Y,
   BUS_X,
   CANVAS,
   DESTINATIONS,
@@ -12,8 +13,8 @@ import {
   INGEST_GATE,
   PLATFORM,
   SEMANTIC_STAGE_INDEX,
-  SOURCES,
   SHIFT_Y,
+  SOURCES,
   SOURCE_BOX,
   STACK_CYCLE_S,
   STAGES,
@@ -21,7 +22,7 @@ import {
   busPath,
   curve,
 } from "./landing-data";
-import { SourceTile, StageGlyph } from "./LandingGlyphs";
+import { GlyphPaths, Icon, SourceMark } from "./LandingGlyphs";
 
 /**
  * The landing diagram: every source system an operator runs, the Fabric
@@ -32,6 +33,11 @@ import { SourceTile, StageGlyph } from "./LandingGlyphs";
  * numbers that place the boxes, so they cannot drift out of alignment at any
  * viewport width.
  *
+ * The *contents* of each box are laid out as HTML inside a `foreignObject`.
+ * SVG text cannot centre a mark and a label as a group without knowing how wide
+ * the text renders, and it cannot know; flexbox can. So: one coordinate space,
+ * real centring, nothing measured.
+ *
  * Motion is the point here, not decoration: packets travel every feed, merge
  * onto the bus, pass the ingestion gate and then step down the platform stack
  * stage by stage, so the picture reads as a pipeline running rather than an
@@ -40,11 +46,19 @@ import { SourceTile, StageGlyph } from "./LandingGlyphs";
  * only reaches CSS animations, so it has to be switched off in React instead.
  */
 
+/**
+ * The staggered entrance fades only — no translate.
+ *
+ * Most of these groups now contain a `foreignObject`, and Safari has long-
+ * standing bugs positioning foreignObject inside a transformed SVG group. An
+ * opacity-only entrance sidesteps that entirely, and the page's motion is
+ * carried by the packets and the stage sweep rather than by this.
+ */
 const stagger = (i: number, base = 0.04) => ({
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
   transition: {
-    duration: 0.5,
+    duration: 0.55,
     delay: 0.15 + i * base,
     ease: [0.22, 1, 0.36, 1] as const,
   },
@@ -91,34 +105,69 @@ function Packet({
   );
 }
 
+/**
+ * HTML centred over a box, in the diagram's own coordinates. Pointer events are
+ * off so the SVG rect underneath stays the hit target for hover and clicks.
+ */
+function BoxContent({
+  x,
+  y,
+  w,
+  h,
+  children,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <foreignObject
+      x={x}
+      y={y}
+      width={w}
+      height={h}
+      style={{ pointerEvents: "none" }}
+    >
+      <div className="flex h-full w-full flex-col items-center justify-center text-center">
+        {children}
+      </div>
+    </foreignObject>
+  );
+}
+
 export function LandingDiagram() {
   const router = useRouter();
   const reduced = useReducedMotion();
   const [hoveredSource, setHovered] = useState<string | null>(null);
   const [hoveredDest, setHoveredDest] = useState<string | null>(null);
 
-  const semanticY = STAGES[SEMANTIC_STAGE_INDEX].y;
   const gateLeft = INGEST_GATE.x - INGEST_GATE.r;
   const gateRight = INGEST_GATE.x + INGEST_GATE.r;
+  const stackRailX = STAGE_BOX.x - 13;
 
   // Feeds run orthogonally onto a shared spine rather than curving into one
   // point, which is what turned the left half into a web of crossing lines.
   const feeds = SOURCES.map((source) =>
     busPath(SOURCE_BOX.x + SOURCE_BOX.w, source.y, gateLeft, INGEST_GATE.y),
   );
-  const gateToPlatform = `M ${gateRight} ${INGEST_GATE.y} H ${PLATFORM.x}`;
 
-  // The spine itself, drawn once so it is a solid line rather than twelve
-  // overlapping strokes of varying opacity.
+  // The trunk runs level along the axis and lands on the rail the packet then
+  // steps down, so outside and inside of the platform are one continuous path.
+  const gateToPlatform = `M ${gateRight} ${AXIS_Y} H ${stackRailX}`;
+
   const busTop = Math.min(...SOURCES.map((s) => s.y));
   const busBottom = Math.max(...SOURCES.map((s) => s.y));
-
-  // Inside the platform, the packet steps from stage 1 down to stage 5.
-  const stackRailX = STAGE_BOX.x - 13;
   const stackPath = `M ${stackRailX} ${STAGES[0].y} V ${STAGES[STAGES.length - 1].y}`;
 
   const outbound = DESTINATIONS.map((destination) =>
-    curve(PLATFORM.x + PLATFORM.w, semanticY, DEST_BOX.x, destination.y),
+    curve(
+      PLATFORM.x + PLATFORM.w,
+      STAGES[SEMANTIC_STAGE_INDEX].y,
+      DEST_BOX.x,
+      destination.y,
+    ),
   );
 
   return (
@@ -196,7 +245,6 @@ export function LandingDiagram() {
           );
         })}
 
-        {/* Gate into the platform: the one trunk everything has become. */}
         <motion.path
           d={gateToPlatform}
           fill="none"
@@ -282,20 +330,19 @@ export function LandingDiagram() {
               strokeWidth="1"
               className="transition-all duration-200"
             />
-            <SourceTile
-              x={SOURCE_BOX.x + 9}
-              y={source.y - 12}
-              size={24}
-              logo={source.logo}
-              glyph={source.glyph}
-            />
-            <text
-              x={SOURCE_BOX.x + 44}
-              y={source.y + 5}
-              className="fill-peak-100 text-[13.5px] font-medium"
+            <BoxContent
+              x={SOURCE_BOX.x}
+              y={source.y - SOURCE_BOX.h / 2}
+              w={SOURCE_BOX.w}
+              h={SOURCE_BOX.h}
             >
-              {source.name}
-            </text>
+              <span className="flex items-center justify-center gap-2 px-3">
+                <SourceMark logo={source.logo} glyph={source.glyph} size={23} />
+                <span className="text-[13.5px] font-medium leading-none text-peak-100">
+                  {source.name}
+                </span>
+              </span>
+            </BoxContent>
           </motion.g>
         );
       })}
@@ -336,10 +383,10 @@ export function LandingDiagram() {
           className={reduced ? undefined : "landing-gate-core"}
         />
         <g
-          transform={`translate(${INGEST_GATE.x - 14} ${INGEST_GATE.y - 14}) scale(1.16)`}
+          transform={`translate(${INGEST_GATE.x - 15} ${INGEST_GATE.y - 15}) scale(1.25)`}
           className="text-white"
         >
-          <StageGlyph glyph="governance" />
+          <GlyphPaths glyph="governance" />
         </g>
         <text
           x={INGEST_GATE.x}
@@ -351,7 +398,7 @@ export function LandingDiagram() {
         </text>
       </motion.g>
 
-      {/* ---- centre: the Fabric platform ---- */}
+      {/* ---- centre: the Fabric platform, on the canvas's vertical midline ---- */}
       <motion.g {...stagger(2, 0.08)}>
         <rect
           x={PLATFORM.x}
@@ -363,28 +410,22 @@ export function LandingDiagram() {
           stroke="rgba(147,184,249,0.4)"
           strokeWidth="1.25"
         />
-        <image
-          href="/logos/microsoft-fabric.png"
-          x={PLATFORM.x + 26}
-          y={PLATFORM.y + 24}
-          width="42"
-          height="42"
-          preserveAspectRatio="xMidYMid meet"
-        />
-        <text
-          x={PLATFORM.x + 80}
-          y={PLATFORM.y + 46}
-          className="fill-white text-[25px] font-semibold tracking-tight"
-        >
-          Microsoft Fabric
-        </text>
-        <text
-          x={PLATFORM.x + 80}
-          y={PLATFORM.y + 68}
-          className="fill-peak-200 text-[13px]"
-        >
-          Unified Data Warehouse / Lakehouse
-        </text>
+        <BoxContent x={PLATFORM.x} y={PLATFORM.y + 14} w={PLATFORM.w} h={112}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset inside a foreignObject */}
+          <img
+            src="/logos/microsoft-fabric.png"
+            alt=""
+            width={40}
+            height={40}
+            style={{ width: 40, height: 40 }}
+          />
+          <span className="mt-1.5 text-[25px] font-semibold leading-none tracking-tight text-white">
+            Microsoft Fabric
+          </span>
+          <span className="mt-2.5 text-[13px] leading-none text-peak-200">
+            Unified Data Warehouse / Lakehouse
+          </span>
+        </BoxContent>
       </motion.g>
 
       {/* The rail the packet runs down, so the five stages read as one path. */}
@@ -408,58 +449,47 @@ export function LandingDiagram() {
               height={STAGE_BOX.h}
               rx="10"
               fill={isSemantic ? "rgba(59,116,240,0.24)" : "rgba(255,255,255,0.05)"}
-              stroke={
-                isSemantic ? "rgba(194,215,252,0.8)" : "rgba(147,184,249,0.24)"
-              }
+              stroke={isSemantic ? "rgba(194,215,252,0.8)" : "rgba(147,184,249,0.24)"}
               strokeWidth={isSemantic ? 1.5 : 1}
             />
 
             {/* The stage the pipeline is "in" right now. A whole lit panel
                 rather than a hairline, so the sweep is visible at hero size. */}
             {!reduced ? (
-              <g className="landing-stage-active" style={{ animationDelay: delay }}>
-                <rect
-                  x={STAGE_BOX.x}
-                  y={stage.y - STAGE_BOX.h / 2}
-                  width={STAGE_BOX.w}
-                  height={STAGE_BOX.h}
-                  rx="10"
-                  fill="rgba(102,153,246,0.3)"
-                  stroke="#ffffff"
-                  strokeWidth="1.5"
-                />
-                <rect
-                  x={STAGE_BOX.x}
-                  y={stage.y - STAGE_BOX.h / 2}
-                  width="4"
-                  height={STAGE_BOX.h}
-                  rx="2"
-                  fill="#ffffff"
-                />
-              </g>
+              <rect
+                x={STAGE_BOX.x}
+                y={stage.y - STAGE_BOX.h / 2}
+                width={STAGE_BOX.w}
+                height={STAGE_BOX.h}
+                rx="10"
+                fill="rgba(102,153,246,0.3)"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+                className="landing-stage-active"
+                style={{ animationDelay: delay }}
+              />
             ) : null}
 
-            <g
-              transform={`translate(${STAGE_BOX.x + 20} ${stage.y - 12}) scale(1.05)`}
-              className={isSemantic ? "text-white" : "text-peak-200"}
+            <BoxContent
+              x={STAGE_BOX.x}
+              y={stage.y - STAGE_BOX.h / 2}
+              w={STAGE_BOX.w}
+              h={STAGE_BOX.h}
             >
-              <StageGlyph glyph={stage.glyph} />
-            </g>
-
-            <text
-              x={STAGE_BOX.x + 62}
-              y={stage.y - 4}
-              className="fill-white text-[15.5px] font-semibold"
-            >
-              {stage.step}. {stage.title}
-            </text>
-            <text
-              x={STAGE_BOX.x + 62}
-              y={stage.y + 16}
-              className="fill-peak-200/80 text-[12px]"
-            >
-              {stage.detail}
-            </text>
+              <span className="flex items-center justify-center gap-2">
+                <Icon
+                  glyph={stage.glyph}
+                  size={21}
+                  className={isSemantic ? "text-white" : "text-peak-200"}
+                />
+                <span className="text-[15.5px] font-semibold leading-none text-white">
+                  {stage.step}. {stage.title}
+                </span>
+              </span>
+              <span className="mt-2.5 px-4 text-[12px] leading-none text-peak-200/80">
+                {stage.detail}
+              </span>
+            </BoxContent>
           </motion.g>
         );
       })}
@@ -525,55 +555,38 @@ export function LandingDiagram() {
               strokeWidth={active ? 1.75 : 1}
               className="transition-all duration-200"
             />
-
-            <rect
-              x={DEST_BOX.x + 22}
-              y={destination.y - DEST_BOX.h / 2 + 22}
-              width="38"
-              height="38"
-              rx="10"
-              fill="#ffffff"
-            />
-            <image
-              href={destination.logo}
-              x={DEST_BOX.x + 28}
-              y={destination.y - DEST_BOX.h / 2 + 28}
-              width="26"
-              height="26"
-              preserveAspectRatio="xMidYMid meet"
-            />
-
-            <text
-              x={DEST_BOX.x + 74}
-              y={destination.y - DEST_BOX.h / 2 + 47}
-              className="fill-white text-[17px] font-semibold tracking-tight"
+            <BoxContent
+              x={DEST_BOX.x}
+              y={destination.y - DEST_BOX.h / 2}
+              w={DEST_BOX.w}
+              h={DEST_BOX.h}
             >
-              {destination.name}
-            </text>
-
-            <foreignObject
-              x={DEST_BOX.x + 22}
-              y={destination.y - DEST_BOX.h / 2 + 70}
-              width={DEST_BOX.w - 44}
-              height="44"
-            >
-              <p className="text-[12px] leading-[1.45] text-peak-200/75">
+              <span className="flex items-center justify-center gap-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- static local asset inside a foreignObject */}
+                  <img
+                    src={destination.logo}
+                    alt=""
+                    width={25}
+                    height={25}
+                    style={{ width: 25, height: 25, objectFit: "contain" }}
+                  />
+                </span>
+                <span className="text-[17px] font-semibold leading-none tracking-tight text-white">
+                  {destination.name}
+                </span>
+              </span>
+              <p className="mt-3 px-6 text-[12px] leading-[1.45] text-peak-200/75">
                 {destination.detail}
               </p>
-            </foreignObject>
-
-            <text
-              x={DEST_BOX.x + DEST_BOX.w - 22}
-              y={destination.y + DEST_BOX.h / 2 - 14}
-              textAnchor="end"
-              className={
-                active
-                  ? "fill-white text-[12.5px] font-semibold"
-                  : "fill-peak-300 text-[12.5px] font-medium"
-              }
-            >
-              Open →
-            </text>
+              <span
+                className={`mt-3 text-[12.5px] leading-none ${
+                  active ? "font-semibold text-white" : "font-medium text-peak-300"
+                }`}
+              >
+                Open →
+              </span>
+            </BoxContent>
           </motion.a>
         );
       })}
