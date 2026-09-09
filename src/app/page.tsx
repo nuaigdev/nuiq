@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 
 import { LandingDiagram } from "@/components/landing/LandingDiagram";
 
-export const metadata = { title: "Landing" };
+/**
+ * `absolute` deliberately bypasses the `%s · NuIQ` template in the root layout:
+ * the landing page is NuAIg's, and its tab should say so.
+ */
+export const metadata: Metadata = { title: { absolute: "NuAIg" } };
 
 /**
  * The landing page.
@@ -22,33 +27,39 @@ export const metadata = { title: "Landing" };
  */
 export default function LandingPage() {
   return (
-    <div className="landing-stage relative flex min-h-screen flex-col overflow-hidden">
-      {/* Live background: three slow-drifting fields of the chrome gradient,
-          over a fine grid. Pure CSS, so the reduced-motion rule in globals.css
-          stops all of it. */}
-      <div aria-hidden className="landing-aurora" />
+    /*
+     * Locked to the viewport: exactly 100dvh with nothing allowed to overflow,
+     * so the page never scrolls and the diagram gets every pixel that is left
+     * after the mark. `dvh` rather than `vh` because mobile browsers shrink the
+     * viewport as their chrome collapses, and `vh` would leave the bottom of
+     * the diagram under it.
+     */
+    <div className="landing-stage relative flex h-[100dvh] flex-col overflow-hidden">
+      {/* Live background, back to front. Layered radial fields drifting at
+          different speeds and directions, a slow sheen crossing them, and a
+          grid for the light to move over — all CSS, so the reduced-motion rule
+          in globals.css stops the lot. */}
       <div aria-hidden className="landing-grid" />
+      <div aria-hidden className="landing-aurora" />
+      <div aria-hidden className="landing-aurora-b" />
+      <div aria-hidden className="landing-sheen" />
+      <div aria-hidden className="landing-vignette" />
 
-      <header className="relative z-10 flex justify-center px-6 pt-9">
+      <header className="relative z-10 flex shrink-0 justify-center px-6 pb-1 pt-5">
         <Image
           src="/nuaig-logo-white.svg"
           alt="NuAIg"
-          width={132}
-          height={34}
+          width={124}
+          height={32}
           priority
-          className="h-[34px] w-auto opacity-95"
+          className="h-8 w-auto"
         />
       </header>
 
-      <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-4 pb-6 pt-4">
-        {/* Below ~1100px the twelve source rows stop being legible if the SVG is
-            scaled to fit, so the canvas keeps a minimum width and scrolls
-            sideways instead of shrinking into unreadability. */}
-        <div className="h-full w-full overflow-x-auto">
-          <div className="mx-auto h-full min-h-[560px] w-full min-w-[1100px]">
-            <LandingDiagram />
-          </div>
-        </div>
+      {/* min-h-0 lets this actually shrink inside the flex column; without it
+          the SVG's intrinsic height wins and the page grows a scrollbar. */}
+      <div className="relative z-10 min-h-0 flex-1 px-5 pb-4">
+        <LandingDiagram />
       </div>
     </div>
   );

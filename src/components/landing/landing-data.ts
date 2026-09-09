@@ -1,10 +1,15 @@
 /**
  * What the landing diagram draws.
  *
- * Geometry lives here with the content, because the connector curves are
+ * Geometry lives here with the content, because the connector paths are
  * computed from these coordinates rather than measured from the DOM — one
  * coordinate space for the boxes and the paths between them means they can
  * never drift apart.
+ *
+ * The canvas is deliberately landscape (roughly 2.3:1) so that `meet` scaling
+ * fills a normal widescreen viewport instead of fitting to height and leaving
+ * the sides empty. Anything added here has to keep that ratio roughly intact,
+ * or the diagram starts shrinking to fit.
  *
  * Everything named here is **illustrative**. The diagram draws the same shape
  * for every client and reads nothing from the warehouse or from config, so a
@@ -13,7 +18,10 @@
  */
 
 /** The drawing surface. Everything below is in these units. */
-export const CANVAS = { w: 1440, h: 812 };
+export const CANVAS = { w: 1600, h: 700 };
+
+/** Baseline for both column headings. */
+export const HEADING_Y = 44;
 
 export type SourceSystem = {
   name: string;
@@ -27,8 +35,8 @@ export type SourceSystem = {
   y: number;
 };
 
-const SOURCE_ROW_H = 52;
-const SOURCE_TOP = 118;
+const SOURCE_ROW_H = 48;
+const SOURCE_TOP = 82;
 
 const SOURCE_NAMES: Omit<SourceSystem, "y">[] = [
   { name: "PointClickCare", logo: "/logos/pointclickcare.png", glyph: "PC" },
@@ -54,12 +62,22 @@ export const SOURCES: SourceSystem[] = SOURCE_NAMES.map((source, i) => ({
   y: SOURCE_TOP + i * SOURCE_ROW_H,
 }));
 
-export const SOURCE_BOX = { x: 56, w: 276, h: 42 };
+export const SOURCE_BOX = { x: 40, w: 262, h: 38 };
 
-/** Where every source's curve gathers before entering the platform. */
+/**
+ * The vertical spine every source joins before the ingestion gate.
+ *
+ * Twelve separate curves fanning into one point read as a spider's web — the
+ * lines cross each other and nothing about the picture says "these merge".
+ * Routing them orthogonally onto a shared bus is both cleaner and truer: it is
+ * what a manifold of feeds into one pipeline actually looks like.
+ */
+export const BUS_X = 344;
+
 export const INGEST_GATE = {
-  x: 392,
+  x: 408,
   y: SOURCE_TOP + ((SOURCE_NAMES.length - 1) * SOURCE_ROW_H) / 2,
+  r: 34,
 };
 
 export type PlatformStage = {
@@ -72,55 +90,57 @@ export type PlatformStage = {
   y: number;
 };
 
-const STAGE_TOP = 196;
-const STAGE_ROW_H = 96;
+export const PLATFORM = { x: 470, w: 470, y: 60, h: 600 };
+export const STAGE_BOX = { x: 496, w: 418, h: 72 };
 
-export const PLATFORM = { x: 520, w: 400, y: 96, h: 656 };
-export const STAGE_BOX = { x: 552, w: 336, h: 74 };
+const STAGE_TOP = 226;
+const STAGE_ROW_H = 88;
 
-export const STAGES: PlatformStage[] = [
-  {
-    id: "ingest",
-    step: 1,
-    title: "Ingestion",
-    detail: "Secure, scheduled loads from every source",
-    glyph: "ingest",
-  },
-  {
-    id: "transform",
-    step: 2,
-    title: "Transformation",
-    detail: "Cleansed, conformed, deduplicated",
-    glyph: "transform",
-  },
-  {
-    id: "lakehouse",
-    step: 3,
-    title: "Warehouse / Lakehouse",
-    detail: "OneLake — one copy, every workload",
-    glyph: "lakehouse",
-  },
-  {
-    id: "semantic",
-    step: 4,
-    title: "Knowledge / Semantic Layer",
-    detail: "Measures, hierarchy, and row-level security",
-    glyph: "semantic",
-  },
-  {
-    id: "governance",
-    step: 5,
-    title: "Governance & Security",
-    detail: "Lineage, audit, and least-privilege access",
-    glyph: "governance",
-  },
-].map((stage, i) => ({
-  ...stage,
-  y: STAGE_TOP + i * STAGE_ROW_H,
-})) as PlatformStage[];
+export const STAGES: PlatformStage[] = (
+  [
+    {
+      id: "ingest",
+      step: 1,
+      title: "Ingestion",
+      detail: "Secure, scheduled loads from every source",
+      glyph: "ingest",
+    },
+    {
+      id: "transform",
+      step: 2,
+      title: "Transformation",
+      detail: "Cleansed, conformed, deduplicated",
+      glyph: "transform",
+    },
+    {
+      id: "lakehouse",
+      step: 3,
+      title: "Warehouse / Lakehouse",
+      detail: "OneLake — one copy, every workload",
+      glyph: "lakehouse",
+    },
+    {
+      id: "semantic",
+      step: 4,
+      title: "Knowledge / Semantic Layer",
+      detail: "Measures, hierarchy, and row-level security",
+      glyph: "semantic",
+    },
+    {
+      id: "governance",
+      step: 5,
+      title: "Governance & Security",
+      detail: "Lineage, audit, and least-privilege access",
+      glyph: "governance",
+    },
+  ] as const
+).map((stage, i) => ({ ...stage, y: STAGE_TOP + i * STAGE_ROW_H }));
 
 /** The layer the outputs actually read from — stage 4, not the raw lakehouse. */
 export const SEMANTIC_STAGE_INDEX = 3;
+
+/** How long one sweep of the whole platform stack takes, in seconds. */
+export const STACK_CYCLE_S = 5.5;
 
 export type Destination = {
   href: string;
@@ -130,15 +150,15 @@ export type Destination = {
   y: number;
 };
 
-const DEST_TOP = 236;
-const DEST_ROW_H = 168;
+const DEST_TOP = 180;
+const DEST_ROW_H = 180;
 
-export const DEST_BOX = { x: 1064, w: 320, h: 128 };
+export const DEST_BOX = { x: 1140, w: 420, h: 140 };
 
 export const DESTINATIONS: Destination[] = [
   {
     href: "/dashboards",
-    name: "Live Power BI Dashboards",
+    name: "Power BI Dashboards",
     detail:
       "Census, falls, staffing and revenue — interactive, and scoped to the communities you are entitled to.",
     logo: "/logos/power-bi.png",
@@ -161,6 +181,35 @@ export const DESTINATIONS: Destination[] = [
   ...destination,
   y: DEST_TOP + i * DEST_ROW_H,
 }));
+
+/**
+ * An orthogonal run from a source onto the shared bus and along to the gate:
+ * out horizontally, one rounded corner onto the spine, down or up it, one
+ * rounded corner off, then in. Sources level with the gate go straight across.
+ */
+export function busPath(
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  busX = BUS_X,
+  radius = 16,
+): string {
+  if (Math.abs(fromY - toY) < 0.5) return `M ${fromX} ${fromY} H ${toX}`;
+
+  const goingDown = toY > fromY;
+  const step = goingDown ? 1 : -1;
+  const r = Math.min(radius, Math.abs(toY - fromY) / 2);
+
+  return [
+    `M ${fromX} ${fromY}`,
+    `H ${busX - r}`,
+    `Q ${busX} ${fromY} ${busX} ${fromY + step * r}`,
+    `V ${toY - step * r}`,
+    `Q ${busX} ${toY} ${busX + r} ${toY}`,
+    `H ${toX}`,
+  ].join(" ");
+}
 
 /** A cubic curve between two points, flat where it meets each end. */
 export function curve(fromX: number, fromY: number, toX: number, toY: number) {

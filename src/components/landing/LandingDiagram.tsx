@@ -5,16 +5,20 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import {
+  BUS_X,
   CANVAS,
   DESTINATIONS,
   DEST_BOX,
+  HEADING_Y,
   INGEST_GATE,
   PLATFORM,
   SEMANTIC_STAGE_INDEX,
   SOURCES,
   SOURCE_BOX,
+  STACK_CYCLE_S,
   STAGES,
   STAGE_BOX,
+  busPath,
   curve,
 } from "./landing-data";
 import { SourceTile, StageGlyph } from "./LandingGlyphs";
@@ -24,15 +28,16 @@ import { SourceTile, StageGlyph } from "./LandingGlyphs";
  * platform that unifies them, and the three ways into the portal.
  *
  * One SVG in one coordinate space (see landing-data.ts) rather than HTML boxes
- * with a measured overlay — the connector curves are computed from the same
+ * with a measured overlay — the connector paths are computed from the same
  * numbers that place the boxes, so they cannot drift out of alignment at any
  * viewport width.
  *
- * Motion is the point here, not decoration: particles travel every edge so the
- * diagram reads as data moving rather than a static architecture chart. All of
- * it is gated on `useReducedMotion` — SMIL animation is *not* stopped by the
- * prefers-reduced-motion rule in globals.css, which only reaches CSS
- * animations, so it has to be switched off in React instead.
+ * Motion is the point here, not decoration: packets travel every feed, merge
+ * onto the bus, pass the ingestion gate and then step down the platform stack
+ * stage by stage, so the picture reads as a pipeline running rather than an
+ * architecture chart. All of it is gated on `useReducedMotion` — SMIL animation
+ * is *not* stopped by the prefers-reduced-motion rule in globals.css, which
+ * only reaches CSS animations, so it has to be switched off in React instead.
  */
 
 const stagger = (i: number, base = 0.04) => ({
@@ -49,7 +54,7 @@ function ColumnHeading({ x, children }: { x: number; children: string }) {
   return (
     <text
       x={x}
-      y={88}
+      y={HEADING_Y}
       className="fill-peak-300/70 text-[13px] font-semibold uppercase"
       letterSpacing="0.14em"
     >
@@ -58,20 +63,26 @@ function ColumnHeading({ x, children }: { x: number; children: string }) {
   );
 }
 
-/** A dot travelling one edge, on a loop. */
-function Particle({
+/** A packet travelling one path, on a loop. */
+function Packet({
   path,
   delay,
-  duration = 3.4,
+  duration,
   active,
+  r = 3,
 }: {
   path: string;
   delay: number;
-  duration?: number;
+  duration: number;
   active: boolean;
+  r?: number;
 }) {
   return (
-    <circle r={active ? 3.6 : 2.6} className={active ? "fill-white" : "fill-peak-400"}>
+    <circle
+      r={active ? r * 1.4 : r}
+      className={active ? "fill-white" : "fill-peak-300"}
+      filter="url(#packet-glow)"
+    >
       <animateMotion
         dur={`${duration}s`}
         begin={`${delay}s`}
@@ -84,7 +95,7 @@ function Particle({
       <animate
         attributeName="opacity"
         values="0;1;1;0"
-        keyTimes="0;0.1;0.85;1"
+        keyTimes="0;0.08;0.88;1"
         dur={`${duration}s`}
         begin={`${delay}s`}
         repeatCount="indefinite"
@@ -100,16 +111,25 @@ export function LandingDiagram() {
   const [hoveredDest, setHoveredDest] = useState<string | null>(null);
 
   const semanticY = STAGES[SEMANTIC_STAGE_INDEX].y;
+  const gateLeft = INGEST_GATE.x - INGEST_GATE.r;
+  const gateRight = INGEST_GATE.x + INGEST_GATE.r;
 
-  const inbound = SOURCES.map((source) =>
-    curve(SOURCE_BOX.x + SOURCE_BOX.w, source.y, INGEST_GATE.x - 30, INGEST_GATE.y),
+  // Feeds run orthogonally onto a shared spine rather than curving into one
+  // point, which is what turned the left half into a web of crossing lines.
+  const feeds = SOURCES.map((source) =>
+    busPath(SOURCE_BOX.x + SOURCE_BOX.w, source.y, gateLeft, INGEST_GATE.y),
   );
-  const gateToPlatform = curve(
-    INGEST_GATE.x + 30,
-    INGEST_GATE.y,
-    PLATFORM.x,
-    STAGES[0].y,
-  );
+  const gateToPlatform = `M ${gateRight} ${INGEST_GATE.y} H ${PLATFORM.x}`;
+
+  // The spine itself, drawn once so it is a solid line rather than twelve
+  // overlapping strokes of varying opacity.
+  const busTop = Math.min(...SOURCES.map((s) => s.y));
+  const busBottom = Math.max(...SOURCES.map((s) => s.y));
+
+  // Inside the platform, the packet steps from stage 1 down to stage 5.
+  const stackRailX = STAGE_BOX.x - 13;
+  const stackPath = `M ${stackRailX} ${STAGES[0].y} V ${STAGES[STAGES.length - 1].y}`;
+
   const outbound = DESTINATIONS.map((destination) =>
     curve(PLATFORM.x + PLATFORM.w, semanticY, DEST_BOX.x, destination.y),
   );
@@ -123,18 +143,29 @@ export function LandingDiagram() {
       aria-label="How data reaches this portal: senior living source systems flow through secure ingestion into the Microsoft Fabric platform, and out to dashboards and agents."
     >
       <defs>
-        {/* The one gradient family the chrome already uses (§8). */}
         <linearGradient id="platform-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#16276b" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#0b1436" stopOpacity="0.55" />
+          <stop offset="0%" stopColor="#1d3a9e" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#070d26" stopOpacity="0.55" />
         </linearGradient>
-        <linearGradient id="edge-live" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#3b74f0" stopOpacity="0.15" />
-          <stop offset="50%" stopColor="#93b8f9" stopOpacity="0.75" />
-          <stop offset="100%" stopColor="#3b74f0" stopOpacity="0.15" />
+        <linearGradient id="trunk" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#6699f6" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#c2d7fc" stopOpacity="0.9" />
         </linearGradient>
-        <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="6" result="blur" />
+        <linearGradient id="rail" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#93b8f9" stopOpacity="0.15" />
+          <stop offset="50%" stopColor="#93b8f9" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#93b8f9" stopOpacity="0.15" />
+        </linearGradient>
+        {/* Packets glow so movement reads at a glance across a wide canvas. */}
+        <filter id="packet-glow" x="-300%" y="-300%" width="700%" height="700%">
+          <feGaussianBlur stdDeviation="2.6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="gate-glow" x="-120%" y="-120%" width="340%" height="340%">
+          <feGaussianBlur stdDeviation="7" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
@@ -147,33 +178,49 @@ export function LandingDiagram() {
         <ColumnHeading x={DEST_BOX.x}>In this portal</ColumnHeading>
       </motion.g>
 
-      {/* ---- edges, behind everything ---- */}
+      {/* ---- feeds, behind everything ---- */}
       <g>
-        {inbound.map((path, i) => {
+        {/* The spine, drawn once. */}
+        <motion.path
+          d={`M ${BUS_X} ${busTop} V ${busBottom}`}
+          fill="none"
+          stroke="#93b8f9"
+          strokeOpacity={0.35}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.8, delay: 0.35, ease: "easeOut" }}
+        />
+
+        {feeds.map((path, i) => {
           const active = hoveredSource === SOURCES[i].name;
           return (
             <motion.path
-              key={`edge-in-${SOURCES[i].name}`}
+              key={`feed-${SOURCES[i].name}`}
               d={path}
               fill="none"
-              stroke={active ? "#c2d7fc" : "#93b8f9"}
-              strokeOpacity={active ? 0.9 : hoveredSource ? 0.12 : 0.28}
-              strokeWidth={active ? 2 : 1.25}
+              stroke={active ? "#ffffff" : "#93b8f9"}
+              strokeOpacity={active ? 1 : hoveredSource ? 0.12 : 0.32}
+              strokeWidth={active ? 2.2 : 1.25}
+              strokeLinecap="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.9, delay: 0.2 + i * 0.04, ease: "easeOut" }}
+              transition={{ duration: 0.9, delay: 0.2 + i * 0.035, ease: "easeOut" }}
             />
           );
         })}
 
+        {/* Gate into the platform: the one trunk everything has become. */}
         <motion.path
           d={gateToPlatform}
           fill="none"
-          stroke="url(#edge-live)"
-          strokeWidth={3}
+          stroke="url(#trunk)"
+          strokeWidth={5}
+          strokeLinecap="round"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ duration: 0.7, delay: 0.7, ease: "easeOut" }}
+          transition={{ duration: 0.6, delay: 0.85, ease: "easeOut" }}
         />
 
         {outbound.map((path, i) => {
@@ -183,37 +230,46 @@ export function LandingDiagram() {
               key={`edge-out-${DESTINATIONS[i].href}`}
               d={path}
               fill="none"
-              stroke={active ? "#c2d7fc" : "#93b8f9"}
-              strokeOpacity={active ? 0.95 : hoveredDest ? 0.14 : 0.35}
+              stroke={active ? "#ffffff" : "#93b8f9"}
+              strokeOpacity={active ? 1 : hoveredDest ? 0.14 : 0.4}
               strokeWidth={active ? 2.4 : 1.5}
-              strokeDasharray="4 5"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.8, delay: 0.9 + i * 0.1, ease: "easeOut" }}
+              transition={{ duration: 0.8, delay: 1 + i * 0.1, ease: "easeOut" }}
             />
           );
         })}
 
         {!reduced ? (
           <>
-            {inbound.map((path, i) => (
-              <Particle
-                key={`p-in-${SOURCES[i].name}`}
+            {feeds.map((path, i) => (
+              <Packet
+                key={`p-feed-${SOURCES[i].name}`}
                 path={path}
-                delay={i * 0.26}
-                duration={3.1}
+                delay={i * 0.34}
+                duration={4.2}
                 active={hoveredSource === SOURCES[i].name}
+                r={2.8}
               />
             ))}
-            <Particle path={gateToPlatform} delay={0.4} duration={1.6} active={false} />
-            <Particle path={gateToPlatform} delay={1.2} duration={1.6} active={false} />
+            {[0, 0.5, 1, 1.5].map((delay) => (
+              <Packet
+                key={`p-trunk-${delay}`}
+                path={gateToPlatform}
+                delay={delay}
+                duration={0.9}
+                active={false}
+                r={4}
+              />
+            ))}
             {outbound.map((path, i) => (
-              <Particle
+              <Packet
                 key={`p-out-${DESTINATIONS[i].href}`}
                 path={path}
-                delay={0.5 + i * 0.7}
-                duration={2.6}
+                delay={0.4 + i * 0.6}
+                duration={2.4}
                 active={hoveredDest === DESTINATIONS[i].href}
+                r={3.2}
               />
             ))}
           </>
@@ -229,7 +285,6 @@ export function LandingDiagram() {
             {...stagger(i)}
             onMouseEnter={() => setHovered(source.name)}
             onMouseLeave={() => setHovered(null)}
-            style={{ cursor: "default" }}
           >
             <rect
               x={SOURCE_BOX.x}
@@ -237,22 +292,22 @@ export function LandingDiagram() {
               width={SOURCE_BOX.w}
               height={SOURCE_BOX.h}
               rx="8"
-              fill={active ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.06)"}
-              stroke={active ? "#93b8f9" : "rgba(147,184,249,0.28)"}
+              fill={active ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)"}
+              stroke={active ? "#c2d7fc" : "rgba(147,184,249,0.26)"}
               strokeWidth="1"
               className="transition-all duration-200"
             />
             <SourceTile
-              x={SOURCE_BOX.x + 10}
-              y={source.y - 13}
-              size={26}
+              x={SOURCE_BOX.x + 9}
+              y={source.y - 12}
+              size={24}
               logo={source.logo}
               glyph={source.glyph}
             />
             <text
-              x={SOURCE_BOX.x + 48}
+              x={SOURCE_BOX.x + 44}
               y={source.y + 5}
-              className="fill-peak-100 text-[14px] font-medium"
+              className="fill-peak-100 text-[13.5px] font-medium"
             >
               {source.name}
             </text>
@@ -260,43 +315,55 @@ export function LandingDiagram() {
         );
       })}
 
-      {/* ---- the ingestion gate every source passes through ---- */}
+      {/* ---- the ingestion gate every feed passes through ---- */}
       <motion.g {...stagger(12, 0.03)}>
-        <rect
-          x={INGEST_GATE.x - 30}
-          y={INGEST_GATE.y - 30}
-          width="60"
-          height="60"
-          rx="14"
-          fill="rgba(36,80,214,0.3)"
-          stroke="rgba(102,153,246,0.7)"
-          strokeWidth="1.25"
+        {!reduced ? (
+          <>
+            <circle
+              cx={INGEST_GATE.x}
+              cy={INGEST_GATE.y}
+              r={INGEST_GATE.r}
+              fill="none"
+              stroke="#93b8f9"
+              strokeWidth="1.5"
+              className="landing-pulse-ring"
+            />
+            <circle
+              cx={INGEST_GATE.x}
+              cy={INGEST_GATE.y}
+              r={INGEST_GATE.r}
+              fill="none"
+              stroke="#6699f6"
+              strokeWidth="1.5"
+              className="landing-pulse-ring"
+              style={{ animationDelay: "1.1s" }}
+            />
+          </>
+        ) : null}
+        <circle
+          cx={INGEST_GATE.x}
+          cy={INGEST_GATE.y}
+          r={INGEST_GATE.r}
+          fill="rgba(36,80,214,0.4)"
+          stroke="#93b8f9"
+          strokeWidth="1.5"
+          filter="url(#gate-glow)"
+          className={reduced ? undefined : "landing-gate-core"}
         />
         <g
-          transform={`translate(${INGEST_GATE.x - 14} ${INGEST_GATE.y - 16}) scale(1.15)`}
-          className="text-peak-200"
+          transform={`translate(${INGEST_GATE.x - 14} ${INGEST_GATE.y - 14}) scale(1.16)`}
+          className="text-white"
         >
           <StageGlyph glyph="governance" />
         </g>
         <text
           x={INGEST_GATE.x}
-          y={INGEST_GATE.y + 48}
+          y={INGEST_GATE.y + INGEST_GATE.r + 20}
           textAnchor="middle"
-          className="fill-peak-300/80 text-[11px] font-medium"
+          className="fill-peak-200 text-[11.5px] font-medium"
         >
           Secure ingestion
         </text>
-        {!reduced ? (
-          <circle
-            cx={INGEST_GATE.x}
-            cy={INGEST_GATE.y}
-            r="30"
-            fill="none"
-            stroke="#6699f6"
-            strokeWidth="1"
-            className="landing-pulse-ring"
-          />
-        ) : null}
       </motion.g>
 
       {/* ---- centre: the Fabric platform ---- */}
@@ -308,22 +375,21 @@ export function LandingDiagram() {
           height={PLATFORM.h}
           rx="20"
           fill="url(#platform-fill)"
-          stroke="rgba(102,153,246,0.45)"
+          stroke="rgba(147,184,249,0.4)"
           strokeWidth="1.25"
         />
-
         <image
           href="/logos/microsoft-fabric.png"
-          x={PLATFORM.x + 30}
-          y={PLATFORM.y + 26}
-          width="38"
-          height="38"
+          x={PLATFORM.x + 26}
+          y={PLATFORM.y + 24}
+          width="42"
+          height="42"
           preserveAspectRatio="xMidYMid meet"
         />
         <text
           x={PLATFORM.x + 80}
           y={PLATFORM.y + 46}
-          className="fill-white text-[24px] font-semibold tracking-tight"
+          className="fill-white text-[25px] font-semibold tracking-tight"
         >
           Microsoft Fabric
         </text>
@@ -336,8 +402,18 @@ export function LandingDiagram() {
         </text>
       </motion.g>
 
+      {/* The rail the packet runs down, so the five stages read as one path. */}
+      <path
+        d={stackPath}
+        fill="none"
+        stroke="url(#rail)"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+
       {STAGES.map((stage, i) => {
         const isSemantic = i === SEMANTIC_STAGE_INDEX;
+        const delay = `${(i * STACK_CYCLE_S) / STAGES.length}s`;
         return (
           <motion.g key={stage.id} {...stagger(i, 0.09)}>
             <rect
@@ -346,30 +422,41 @@ export function LandingDiagram() {
               width={STAGE_BOX.w}
               height={STAGE_BOX.h}
               rx="10"
-              fill={isSemantic ? "rgba(59,116,240,0.22)" : "rgba(255,255,255,0.05)"}
+              fill={isSemantic ? "rgba(59,116,240,0.24)" : "rgba(255,255,255,0.05)"}
               stroke={
-                isSemantic ? "rgba(147,184,249,0.75)" : "rgba(147,184,249,0.24)"
+                isSemantic ? "rgba(194,215,252,0.8)" : "rgba(147,184,249,0.24)"
               }
               strokeWidth={isSemantic ? 1.5 : 1}
             />
-            {/* The stage indicator sweeps 1 → 5 on a loop, so the stack reads as
-                a pipeline rather than a list. */}
+
+            {/* The stage the pipeline is "in" right now. A whole lit panel
+                rather than a hairline, so the sweep is visible at hero size. */}
             {!reduced ? (
-              <rect
-                x={STAGE_BOX.x}
-                y={stage.y - STAGE_BOX.h / 2}
-                width="3"
-                height={STAGE_BOX.h}
-                rx="1.5"
-                className="landing-stage-bar"
-                style={{ animationDelay: `${i * 0.9}s` }}
-                fill="#93b8f9"
-              />
+              <g className="landing-stage-active" style={{ animationDelay: delay }}>
+                <rect
+                  x={STAGE_BOX.x}
+                  y={stage.y - STAGE_BOX.h / 2}
+                  width={STAGE_BOX.w}
+                  height={STAGE_BOX.h}
+                  rx="10"
+                  fill="rgba(102,153,246,0.3)"
+                  stroke="#ffffff"
+                  strokeWidth="1.5"
+                />
+                <rect
+                  x={STAGE_BOX.x}
+                  y={stage.y - STAGE_BOX.h / 2}
+                  width="4"
+                  height={STAGE_BOX.h}
+                  rx="2"
+                  fill="#ffffff"
+                />
+              </g>
             ) : null}
 
             <g
               transform={`translate(${STAGE_BOX.x + 20} ${stage.y - 12}) scale(1.05)`}
-              className={isSemantic ? "text-white" : "text-peak-300"}
+              className={isSemantic ? "text-white" : "text-peak-200"}
             >
               <StageGlyph glyph={stage.glyph} />
             </g>
@@ -377,14 +464,14 @@ export function LandingDiagram() {
             <text
               x={STAGE_BOX.x + 62}
               y={stage.y - 4}
-              className="fill-white text-[15px] font-semibold"
+              className="fill-white text-[15.5px] font-semibold"
             >
               {stage.step}. {stage.title}
             </text>
             <text
               x={STAGE_BOX.x + 62}
-              y={stage.y + 15}
-              className="fill-peak-200/80 text-[11.5px]"
+              y={stage.y + 16}
+              className="fill-peak-200/80 text-[12px]"
             >
               {stage.detail}
             </text>
@@ -392,10 +479,24 @@ export function LandingDiagram() {
         );
       })}
 
+      {/* The packet stepping down the stack, in time with the lit stage. */}
+      {!reduced ? (
+        <circle r="5" fill="#ffffff" filter="url(#packet-glow)">
+          <animateMotion
+            dur={`${STACK_CYCLE_S}s`}
+            repeatCount="indefinite"
+            path={stackPath}
+            keyPoints="0;0;0.25;0.25;0.5;0.5;0.75;0.75;1;1"
+            keyTimes="0;0.14;0.2;0.34;0.4;0.54;0.6;0.74;0.8;1"
+            calcMode="linear"
+          />
+        </circle>
+      ) : null}
+
       <motion.g {...stagger(6, 0.09)}>
         <text
           x={PLATFORM.x + PLATFORM.w / 2}
-          y={PLATFORM.y + PLATFORM.h - 34}
+          y={PLATFORM.y + PLATFORM.h - 22}
           textAnchor="middle"
           className="fill-peak-300/70 text-[11.5px]"
           letterSpacing="0.06em"
@@ -434,56 +535,56 @@ export function LandingDiagram() {
               width={DEST_BOX.w}
               height={DEST_BOX.h}
               rx="14"
-              fill={active ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)"}
-              stroke={active ? "#c2d7fc" : "rgba(147,184,249,0.3)"}
+              fill={active ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)"}
+              stroke={active ? "#ffffff" : "rgba(147,184,249,0.3)"}
               strokeWidth={active ? 1.75 : 1}
               className="transition-all duration-200"
             />
 
             <rect
-              x={DEST_BOX.x + 20}
-              y={destination.y - DEST_BOX.h / 2 + 20}
-              width="34"
-              height="34"
-              rx="9"
+              x={DEST_BOX.x + 22}
+              y={destination.y - DEST_BOX.h / 2 + 22}
+              width="38"
+              height="38"
+              rx="10"
               fill="#ffffff"
             />
             <image
               href={destination.logo}
-              x={DEST_BOX.x + 25}
-              y={destination.y - DEST_BOX.h / 2 + 25}
-              width="24"
-              height="24"
+              x={DEST_BOX.x + 28}
+              y={destination.y - DEST_BOX.h / 2 + 28}
+              width="26"
+              height="26"
               preserveAspectRatio="xMidYMid meet"
             />
 
             <text
-              x={DEST_BOX.x + 66}
-              y={destination.y - DEST_BOX.h / 2 + 42}
-              className="fill-white text-[15.5px] font-semibold tracking-tight"
+              x={DEST_BOX.x + 74}
+              y={destination.y - DEST_BOX.h / 2 + 47}
+              className="fill-white text-[17px] font-semibold tracking-tight"
             >
               {destination.name}
             </text>
 
             <foreignObject
-              x={DEST_BOX.x + 20}
-              y={destination.y - DEST_BOX.h / 2 + 60}
-              width={DEST_BOX.w - 40}
-              height="46"
+              x={DEST_BOX.x + 22}
+              y={destination.y - DEST_BOX.h / 2 + 70}
+              width={DEST_BOX.w - 44}
+              height="44"
             >
-              <p className="text-[11.5px] leading-[1.45] text-peak-200/75">
+              <p className="text-[12px] leading-[1.45] text-peak-200/75">
                 {destination.detail}
               </p>
             </foreignObject>
 
             <text
-              x={DEST_BOX.x + DEST_BOX.w - 20}
-              y={destination.y + DEST_BOX.h / 2 - 12}
+              x={DEST_BOX.x + DEST_BOX.w - 22}
+              y={destination.y + DEST_BOX.h / 2 - 14}
               textAnchor="end"
               className={
                 active
-                  ? "fill-white text-[12px] font-medium"
-                  : "fill-peak-300 text-[12px] font-medium"
+                  ? "fill-white text-[12.5px] font-semibold"
+                  : "fill-peak-300 text-[12.5px] font-medium"
               }
             >
               Open →

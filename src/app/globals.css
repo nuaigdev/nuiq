@@ -418,67 +418,126 @@ html[data-app-focus="on"] .app-footer {
  * family as .chrome-header so the landing and the portal read as one product
  * (CLAUDE.md §8). Everything here is a CSS animation, which means the
  * prefers-reduced-motion rule above stops all of it; the SVG's own SMIL
- * particles are gated separately in React, because that rule cannot reach them.
+ * packets are gated separately in React, because that rule cannot reach them.
+ *
+ * The background is built from five layers rather than one, because a single
+ * drifting gradient reads as a static dark panel at this scale. Each layer
+ * moves on its own period and direction, so they never resynchronise into an
+ * obvious loop.
  * ------------------------------------------------------------------------ */
 
 .landing-stage {
+  background-color: var(--color-peak-950);
   background-image: linear-gradient(
-    104deg,
+    112deg,
     var(--color-peak-950) 0%,
-    var(--color-peak-850) 52%,
+    var(--color-peak-900) 38%,
+    var(--color-peak-850) 72%,
     var(--color-peak-800) 100%
   );
   color: #fff;
+  isolation: isolate;
+}
+
+.landing-stage > [aria-hidden] {
+  position: absolute;
+  pointer-events: none;
 }
 
 /*
- * Three slow fields of light drifting behind the diagram. Radial gradients
- * rather than blurred elements: no filter cost on a full-viewport layer, and
- * it stays smooth on a laptop GPU.
+ * Two fields of light, drifting against each other. Radial gradients rather
+ * than blurred elements: no filter cost on a full-viewport layer, and it stays
+ * smooth on integrated graphics.
  */
 .landing-aurora {
-  position: absolute;
-  inset: -20%;
-  pointer-events: none;
+  inset: -25%;
   background-image:
     radial-gradient(
-      38% 46% at 22% 32%,
-      rgba(59, 116, 240, 0.3) 0%,
-      transparent 70%
+      32% 42% at 24% 30%,
+      rgba(59, 116, 240, 0.42) 0%,
+      transparent 68%
     ),
     radial-gradient(
-      34% 40% at 78% 62%,
-      rgba(102, 153, 246, 0.24) 0%,
+      28% 34% at 74% 66%,
+      rgba(102, 153, 246, 0.32) 0%,
       transparent 70%
-    ),
-    radial-gradient(
-      44% 38% at 52% 88%,
-      rgba(29, 58, 158, 0.34) 0%,
-      transparent 72%
     );
-  animation: landing-drift 26s ease-in-out infinite alternate;
+  animation: landing-drift-a 24s ease-in-out infinite alternate;
 }
 
-@keyframes landing-drift {
+.landing-aurora-b {
+  inset: -25%;
+  background-image:
+    radial-gradient(
+      36% 30% at 56% 84%,
+      rgba(29, 58, 158, 0.5) 0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      22% 28% at 88% 18%,
+      rgba(147, 184, 249, 0.2) 0%,
+      transparent 70%
+    );
+  animation: landing-drift-b 33s ease-in-out infinite alternate;
+}
+
+@keyframes landing-drift-a {
   from {
-    transform: translate3d(-1.5%, -1%, 0) scale(1);
+    transform: translate3d(-2%, -1.5%, 0) scale(1);
   }
   to {
-    transform: translate3d(2%, 1.5%, 0) scale(1.08);
+    transform: translate3d(3%, 2%, 0) scale(1.12);
   }
 }
 
-/* A fine grid, so the light has something to move across. */
+@keyframes landing-drift-b {
+  from {
+    transform: translate3d(2.5%, 1%, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(-2%, -2.5%, 0) scale(1);
+  }
+}
+
+/* A slow band of light crossing the page, so the surface reads as lit. */
+.landing-sheen {
+  inset: -40% -60%;
+  background-image: linear-gradient(
+    76deg,
+    transparent 38%,
+    rgba(194, 215, 252, 0.09) 50%,
+    transparent 62%
+  );
+  animation: landing-sheen 19s ease-in-out infinite;
+}
+
+@keyframes landing-sheen {
+  0%,
+  100% {
+    transform: translate3d(-22%, 0, 0);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  65% {
+    opacity: 1;
+  }
+  50%,
+  99% {
+    transform: translate3d(22%, 0, 0);
+  }
+}
+
+/* A fine grid for the light to move across, faded out toward the edges. */
 .landing-grid {
-  position: absolute;
   inset: 0;
-  pointer-events: none;
   background-image:
-    linear-gradient(rgba(147, 184, 249, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(147, 184, 249, 0.05) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(75% 65% at 50% 45%, #000 30%, transparent 100%);
-  animation: landing-grid-pan 40s linear infinite;
+    linear-gradient(rgba(147, 184, 249, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 184, 249, 0.07) 1px, transparent 1px);
+  background-size: 58px 58px;
+  mask-image: radial-gradient(78% 70% at 50% 45%, #000 25%, transparent 100%);
+  animation: landing-grid-pan 34s linear infinite;
 }
 
 @keyframes landing-grid-pan {
@@ -486,55 +545,82 @@ html[data-app-focus="on"] .app-footer {
     background-position: 0 0;
   }
   to {
-    background-position: 64px 64px;
+    background-position: 58px 58px;
   }
+}
+
+/* Edge falloff, so the diagram sits in a pool of light rather than on a slab. */
+.landing-vignette {
+  inset: 0;
+  background-image: radial-gradient(
+    82% 78% at 50% 46%,
+    transparent 40%,
+    rgba(7, 13, 38, 0.62) 100%
+  );
 }
 
 /*
- * The stage indicator that sweeps 1 -> 5 down the platform stack. Each bar
- * carries its own delay, so the stack reads as a pipeline running rather than
- * five boxes sitting there.
+ * The lit stage: which step of the pipeline the platform is running right now.
+ * A whole panel lights rather than a hairline, because at hero size a 3px bar
+ * is invisible from across a room — which is where this page gets looked at.
  */
-.landing-stage-bar {
+.landing-stage-active {
   opacity: 0;
-  transform-origin: center;
-  animation: landing-stage-sweep 4.5s ease-in-out infinite;
+  animation: landing-stage-active 5.5s ease-in-out infinite;
 }
 
-@keyframes landing-stage-sweep {
-  0%,
+@keyframes landing-stage-active {
+  0% {
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  16% {
+    opacity: 0.9;
+  }
+  24% {
+    opacity: 0;
+  }
   100% {
     opacity: 0;
   }
-  8% {
-    opacity: 1;
+}
+
+/* The ingestion gate, breathing, so the convergence point reads as live. */
+.landing-gate-core {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: landing-gate-core 2.8s ease-in-out infinite;
+}
+
+@keyframes landing-gate-core {
+  0%,
+  100% {
+    transform: scale(1);
   }
-  22% {
-    opacity: 0.85;
-  }
-  40% {
-    opacity: 0;
+  50% {
+    transform: scale(1.06);
   }
 }
 
-/* The ingestion gate breathing, so the convergence point reads as live. */
 .landing-pulse-ring {
-  transform-origin: center;
   transform-box: fill-box;
-  animation: landing-pulse 3.2s ease-out infinite;
+  transform-origin: center;
+  animation: landing-pulse 2.8s ease-out infinite;
 }
 
 @keyframes landing-pulse {
   0% {
-    opacity: 0.7;
-    transform: scale(0.86);
+    opacity: 0.85;
+    transform: scale(0.9);
   }
-  70% {
+  75% {
     opacity: 0;
-    transform: scale(1.5);
+    transform: scale(1.75);
   }
   100% {
     opacity: 0;
-    transform: scale(1.5);
+    transform: scale(1.75);
   }
 }

@@ -29,7 +29,7 @@ const NAV_DEFINITIONS: NavDefinition[] = [
   },
   {
     href: "/dashboards",
-    label: "Live Power BI Dashboards",
+    label: "Power BI Dashboards",
     // Always available: an admin can add dashboards from within the tab, so
     // hiding it when config is empty would hide the only way to add the first.
     isConfigured: () => true,

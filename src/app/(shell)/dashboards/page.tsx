@@ -4,7 +4,7 @@ import { DashboardTile } from "@/components/DashboardTile";
 import { getDashboards } from "@/lib/dashboard-store";
 import { getTenantConfig } from "@/lib/tenant-config";
 
-export const metadata = { title: "Live Power BI Dashboards" };
+export const metadata = { title: "Power BI Dashboards" };
 
 /**
  * The dashboard index: still-preview tiles, not live embeds. Opening a tile
@@ -22,7 +22,7 @@ export default async function DashboardsPage() {
             Power BI
           </p>
           <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-tight text-ink">
-            Live Power BI Dashboards
+            Power BI Dashboards
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
             The Power BI reports built on your warehouse — census and occupancy,
