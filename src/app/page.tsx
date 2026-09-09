@@ -45,14 +45,14 @@ export default function LandingPage() {
       <div aria-hidden className="landing-sheen" />
       <div aria-hidden className="landing-vignette" />
 
-      <header className="relative z-10 flex shrink-0 justify-center px-6 pb-1 pt-5">
+      <header className="relative z-10 flex shrink-0 justify-center px-6 pb-2 pt-6">
         <Image
           src="/nuaig-logo-white.svg"
           alt="NuAIg"
-          width={124}
-          height={32}
+          width={184}
+          height={48}
           priority
-          className="h-8 w-auto"
+          className="h-12 w-auto"
         />
       </header>
 

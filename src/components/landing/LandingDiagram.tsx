@@ -9,11 +9,11 @@ import {
   CANVAS,
   DESTINATIONS,
   DEST_BOX,
-  HEADING_Y,
   INGEST_GATE,
   PLATFORM,
   SEMANTIC_STAGE_INDEX,
   SOURCES,
+  SHIFT_Y,
   SOURCE_BOX,
   STACK_CYCLE_S,
   STAGES,
@@ -49,19 +49,6 @@ const stagger = (i: number, base = 0.04) => ({
     ease: [0.22, 1, 0.36, 1] as const,
   },
 });
-
-function ColumnHeading({ x, children }: { x: number; children: string }) {
-  return (
-    <text
-      x={x}
-      y={HEADING_Y}
-      className="fill-peak-300/70 text-[13px] font-semibold uppercase"
-      letterSpacing="0.14em"
-    >
-      {children}
-    </text>
-  );
-}
 
 /** A packet travelling one path, on a loop. */
 function Packet({
@@ -136,7 +123,10 @@ export function LandingDiagram() {
 
   return (
     <svg
-      viewBox={`0 0 ${CANVAS.w} ${CANVAS.h}`}
+      /* The origin is offset by SHIFT_Y rather than wrapping the drawing in a
+         translated group: same lift, and every coordinate below still means
+         what landing-data.ts says it means. */
+      viewBox={`0 ${SHIFT_Y} ${CANVAS.w} ${CANVAS.h}`}
       className="h-full w-full"
       preserveAspectRatio="xMidYMid meet"
       role="group"
@@ -172,11 +162,6 @@ export function LandingDiagram() {
           </feMerge>
         </filter>
       </defs>
-
-      <motion.g {...stagger(0)}>
-        <ColumnHeading x={SOURCE_BOX.x}>Source systems</ColumnHeading>
-        <ColumnHeading x={DEST_BOX.x}>In this portal</ColumnHeading>
-      </motion.g>
 
       {/* ---- feeds, behind everything ---- */}
       <g>

@@ -51,6 +51,6 @@ export const config = {
    * the logos are needed to render the sign-in screen.
    */
   matcher: [
-    "/((?!signin|api/auth|_next/static|_next/image|favicon.ico|nuiq-logo.png|nuaig-logo.svg|nuaig-logo-white.svg).*)",
+    "/((?!signin|api/auth|_next/static|_next/image|favicon.ico|nuaig-mark.svg|nuaig-logo.svg|nuaig-logo-white.svg).*)",
   ],
 };

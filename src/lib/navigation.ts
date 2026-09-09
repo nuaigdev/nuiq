@@ -24,7 +24,7 @@ type NavDefinition = NavItem & {
 const NAV_DEFINITIONS: NavDefinition[] = [
   {
     href: "/",
-    label: "Landing",
+    label: "Home Page",
     isConfigured: () => true,
   },
   {
@@ -54,7 +54,7 @@ export function getNavItems(config: TenantConfig): NavItem[] {
   );
 }
 
-/** Where the NuIQ mark points. The landing page is always present. */
+/** Where the NuAIg mark points. The home page is always present. */
 export function getDefaultRoute(): string {
   return "/";
 }

@@ -37,22 +37,18 @@ export function SignInScreen({ clientName }: { clientName: string }) {
     <div className="chrome-header flex flex-1 flex-col text-white">
       <main className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-md">
-          {/* Same treatment as the header: product mark, then client identity
-              behind a divider. */}
+          {/* Same mark as the header. The client name stays here — on the one
+              screen where you have not signed in yet, which portal you are
+              signing in to is worth stating (CLAUDE.md §5). */}
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-            <div className="flex items-center gap-1.5">
-              <Image
-                src="/nuiq-logo.png"
-                alt=""
-                width={96}
-                height={96}
-                priority
-                className="h-11 w-11"
-              />
-              <span className="bg-gradient-to-br from-white via-peak-200 to-peak-500 bg-clip-text text-[28px] font-semibold leading-none tracking-[-0.03em] text-transparent">
-                NuIQ
-              </span>
-            </div>
+            <Image
+              src="/nuaig-logo-white.svg"
+              alt="NuAIg"
+              width={150}
+              height={38}
+              priority
+              className="h-[38px] w-auto"
+            />
             <span aria-hidden className="h-7 w-px bg-white/20" />
             <span className="text-base text-peak-100/85">{clientName}</span>
           </div>

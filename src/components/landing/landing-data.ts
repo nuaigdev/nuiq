@@ -17,11 +17,16 @@
  * client-specific belongs in this file — that lives in tenant.json (§9).
  */
 
-/** The drawing surface. Everything below is in these units. */
-export const CANVAS = { w: 1600, h: 700 };
-
-/** Baseline for both column headings. */
-export const HEADING_Y = 44;
+/**
+ * The drawing surface. Everything below is in these units.
+ *
+ * The column headings that used to sit at the top are gone, so the content is
+ * lifted by SHIFT_Y and the canvas shortened to match — otherwise the diagram
+ * would sit low against a band of empty space. Positions below are unchanged;
+ * the whole drawing is translated once.
+ */
+export const CANVAS = { w: 1600, h: 676 };
+export const SHIFT_Y = 24;
 
 export type SourceSystem = {
   name: string;

@@ -40,7 +40,9 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s · NuIQ`,
     },
     description: "Data intelligence portal for senior living and long-term care.",
-    icons: { icon: "/nuiq-logo.png" },
+    /* The square NuAIg mark cropped out of the wordmark: the full wordmark is
+       unreadable at 16px, and the NuIQ mark is no longer used (CLAUDE.md §8). */
+    icons: { icon: "/nuaig-mark.svg" },
   };
 }
 

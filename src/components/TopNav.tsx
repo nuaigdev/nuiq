@@ -18,7 +18,6 @@ import type { NavItem } from "@/lib/navigation";
 type TopNavProps = {
   items: NavItem[];
   defaultRoute: string;
-  clientName: string;
   clientLogoUrl?: string;
   /** Sign in / sign out controls, rendered on the server. */
   authControls: React.ReactNode;
@@ -27,7 +26,6 @@ type TopNavProps = {
 export function TopNav({
   items,
   defaultRoute,
-  clientName,
   clientLogoUrl,
   authControls,
 }: TopNavProps) {
@@ -41,38 +39,33 @@ export function TopNav({
       >
         <Link
           href={defaultRoute}
-          aria-label="NuIQ home"
-          className="flex shrink-0 items-center gap-1.5 rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-peak-300"
+          aria-label="Home page"
+          className="flex shrink-0 items-center rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-peak-300"
         >
+          {/* The NuAIg logo is the mark throughout the product now — the NuIQ
+              origami mark is no longer used anywhere (CLAUDE.md §8). White
+              variant because the header is the dark chrome gradient. */}
           <Image
-            src="/nuiq-logo.png"
-            alt=""
-            width={80}
-            height={80}
+            src="/nuaig-logo-white.svg"
+            alt="NuAIg"
+            width={116}
+            height={30}
             priority
-            className="h-[37px] w-[37px]"
+            className="h-[30px] w-auto"
           />
-          {/* Gradient is on the NuIQ wordmark only — the origami mark itself
-              stays flat and untouched (CLAUDE.md §8). */}
-          <span className="bg-gradient-to-br from-white via-peak-200 to-peak-500 bg-clip-text text-[22px] font-semibold leading-none tracking-[-0.03em] text-transparent">
-            NuIQ
-          </span>
         </Link>
 
-        {/* Which client's portal this is. Sits with the product mark rather than
-            with the user menu: it answers "where am I", not "who am I", and
-            keeping the two apart stops the right-hand cluster becoming a pile of
-            unrelated labels. */}
-        <div className="flex min-w-0 shrink items-center gap-2.5">
-          <span aria-hidden className="h-6 w-px shrink-0 bg-white/15" />
-          {clientLogoUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element -- client-supplied URL, dimensions unknown */
+        {/* The client's own logo, when one is configured. The client *name*
+            used to sit here too and no longer does. Nothing renders at all
+            without a configured logo, rather than leaving a divider with
+            nothing beside it. */}
+        {clientLogoUrl ? (
+          <div className="flex min-w-0 shrink items-center gap-2.5">
+            <span aria-hidden className="h-6 w-px shrink-0 bg-white/15" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- client-supplied URL, dimensions unknown */}
             <img src={clientLogoUrl} alt="" className="h-6 w-auto shrink-0" />
-          ) : null}
-          <span className="truncate text-sm text-peak-100/85" title={clientName}>
-            {clientName}
-          </span>
-        </div>
+          </div>
+        ) : null}
 
         <ul className="flex shrink-0 items-center gap-0.5">
           {items.map((item) => {

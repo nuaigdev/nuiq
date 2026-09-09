@@ -15,9 +15,9 @@ This file is the source of truth for how Claude (and any human contributor) shou
 
 NuIQ is **not** a data warehouse, an ETL tool, or a BI tool. It is the presentation and orchestration layer that sits in front of infrastructure the client already owns (Fabric, Power BI, Microsoft agent tooling).
 
-**Brand rule:** Every deployment of the app must show "**Powered by NuAIg**" in the footer, alongside the NuAIg logo (`/public/nuaig-logo.svg`, with `/public/nuaig-logo-white.svg` for dark backgrounds). This is non-negotiable — do not build layouts that omit or bury the footer credit.
+**Brand rule:** Every deployment of the app must show "**Powered by NuAIg**" in the footer, alongside the NuAIg logo (`/public/nuaig-logo.svg`, with `/public/nuaig-logo-white.svg` for dark backgrounds). This is non-negotiable — do not build layouts that omit or bury the footer credit. The landing page is the single exception (§8).
 
-The NuIQ mark is the faceted origami peak (`/public/nuiq-logo.png`) — this is the app's own logo — flat vector, no gradients in production use of the mark, deep indigo/blue facet tones. Don't regenerate or reinterpret the logo in code; treat the provided asset as final.
+**The NuAIg logo is the mark everywhere in the product** — header, sign-in, landing page, favicon. `/public/nuiq-logo.png` (the faceted origami peak) is no longer used anywhere in the UI; the asset stays in the repo but nothing references it. "NuIQ" remains the product's *name* in copy, page titles and the `%s · NuIQ` title template — it just has no mark of its own. Don't reintroduce the origami mark without being asked.
 
 ---
 
@@ -178,7 +178,7 @@ means `BLOB_READ_WRITE_TOKEN` in `.env.local` (`vercel env pull .env.local`).
 
 ```
 config/{CLIENT_ID}/tenant.json   non-secret client config (§3)
-public/                          nuiq-logo.png, nuaig-logo.svg, nuaig-logo-white.svg (§8)
+public/                          nuaig-logo.svg, nuaig-logo-white.svg, nuaig-mark.svg (§8)
 src/app/page.tsx                 Landing page (Tab 1) — the diagram, no chrome
 src/app/layout.tsx               <html>, font, login gate — no visible chrome
 src/app/(shell)/layout.tsx       TopNav + Footer; every portal tab lives here (§5)
@@ -268,13 +268,14 @@ Every portal page renders inside one persistent shell: **top-level navigation pa
 - **Top nav only — no side nav.** The navigation menu is a horizontal bar across the top of the shell. Do not build a left sidebar, a collapsible rail, a hamburger drawer on desktop, or a split top+side arrangement. Four destinations fit comfortably in a top bar; a sidebar would spend horizontal space that Tabs 1 and 2 need — the React Flow canvas and embedded Power BI reports both want the full width.
 - The nav panel is **always visible on every page**, including error, loading, and empty states. A user must never land somewhere with no way back to the other three tabs. Two pages are exempt, both deliberately: the pre-authentication sign-in screen, which has nowhere to navigate to yet, and the landing page (Tab 1), which is a full-bleed diagram whose own cards are the way in.
 - **The shell lives in the `(shell)` route group, not the root layout.** The root layout owns `<html>`, the font and the login gate; `src/app/(shell)/layout.tsx` owns the nav and the footer. A route group changes no URLs. Any new portal page belongs inside `(shell)` — a page added directly under `src/app/` renders with no nav and no footer credit, which is right for exactly one page and wrong for every other.
-- It carries exactly the four top-level destinations, in the order given below (Landing → Power BI Dashboards → Conversational Data Agent → Advanced AI Agents). Order is fixed; the landing diagram first, then the reporting on the data, then the two ways of asking questions of it. **Labels and routes are decoupled**: the routes stay `/`, `/dashboards`, `/data-agents`, `/ai-agents` so links already shared keep working, while the labels are the product names above. Renaming a label must not rename a route.
-- **Client identity sits beside the NuIQ mark, not with the user menu.** The
-  client's `displayName` (and `clientLogoUrl` when set) answers "which client's
-  portal is this" — product context, not user context. Keeping it on the left,
-  behind a divider, leaves the right-hand cluster for who is signed in. Never
-  render it as page content: it is chrome, and on a page it reads as a heading.
-- The NuIQ mark sits in the nav panel as the app's identity and links to the default tab. The client's own logo/name (`branding.clientLogoUrl`, `displayName`) may appear alongside it, read from config — never hardcoded, and never replacing the NuIQ mark (§8).
+- It carries exactly the four top-level destinations, in the order given below (Home Page → Power BI Dashboards → Conversational Data Agent → Advanced AI Agents). Order is fixed; the home diagram first, then the reporting on the data, then the two ways of asking questions of it. **Labels and routes are decoupled**: the routes stay `/`, `/dashboards`, `/data-agents`, `/ai-agents` so links already shared keep working, while the labels are the product names above. Renaming a label must not rename a route.
+- **The client name is not in the header.** It was, beside the mark, and was
+  removed by explicit decision — do not add it back. The client's own
+  `clientLogoUrl` still renders there when one is configured, behind a divider;
+  with no configured logo nothing renders at all rather than a bare divider.
+  `displayName` still appears on the sign-in screen, which is the one place
+  where "which portal am I signing in to" is worth stating.
+- The NuAIg logo sits in the nav panel as the mark and links to the home page. The client's own logo (`branding.clientLogoUrl`) may appear alongside it, read from config — never hardcoded.
 - **Tabs are real routes, not client-side state.** Each is its own App Router segment with a deep-linkable URL, so a user can link a colleague to a specific dashboard or agent and browser back/forward behave correctly. Don't build a single page that swaps panels in local state.
 - **Tabs a client hasn't configured hide themselves.** If `tenant.json` lists no `fabricDataAgents` or no `agents`, that tab does not render in the nav (Home and Dashboards always render — Dashboards because an admin adds the first dashboard from inside it) — driven by config, not by a hardcoded per-client check. Prefer hiding over rendering an empty tab.
 - **The nav is presentation, not access control.** Hiding or omitting a nav item is never a substitute for the server-side checks in §6 — if a user shouldn't reach a route, the route itself must refuse them, not merely lack a link.
@@ -310,8 +311,12 @@ wants a page of its own gets a route in `(shell)`.
 - **The outputs read from the semantic layer, not the raw lakehouse** — stage 4
   is where the outbound edges start, and it is emphasised for that reason. Keep
   that relationship if the stack is ever re-drawn.
-- **The NuAIg mark is the page's identity**, centred above the diagram (§8).
-  The NuIQ mark does not appear here; it is the identity inside the portal.
+- **The NuAIg mark is the page's identity**, centred above the diagram (§8),
+  and larger here than in the header since it is the page's only chrome.
+- **No column headings.** "Source systems" and "In this portal" were removed:
+  the twelve vendor marks and the three destination cards say what each column
+  is without being labelled. The drawing is lifted by offsetting the viewBox
+  origin, so every coordinate in `landing-data.ts` still means what it says.
 - **Motion is the point.** Particles travel every edge, a stage indicator sweeps
   1 → 5 down the platform stack, the ingestion gate pulses, and the background is
   a slow-drifting field of the chrome gradient over a fine grid. Hovering a
@@ -563,17 +568,17 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 
 - Footer must always read **"Powered by NuAIg"** with the NuAIg logo (`/public/nuaig-logo.svg`, or `/public/nuaig-logo-white.svg` on a dark footer), on every page, in every client deployment. This is client-agnostic and must not be configurable away via `tenant.json`.
 - **The landing page is the one exception, by explicit decision.** It carries no footer — and therefore no footer credit — because it carries no chrome at all. Instead the NuAIg mark is the page's own identity, centred above the diagram. The credit is not lost, it is promoted. This exemption is for `src/app/page.tsx` alone; every other route renders inside `(shell)` and keeps the footer.
-- **The NuAIg logos are otherwise footer-only.** `nuaig-logo.svg` / `nuaig-logo-white.svg` appear in the footer credit and, on the landing page, as that page's mark — and nowhere else. Not in the header/nav of the portal tabs, not as the favicon, not as a loading or watermark graphic, not in the browser tab title bar. NuAIg is the builder's credit; inside the portal proper the identity is still NuIQ's.
-- The NuIQ mark (`/public/nuiq-logo.png`, the origami peak) is the app's logo and the only logo used for the app itself — header/nav, favicon, loading/empty states, social preview. Per-client branding (`branding.primaryColor`, `branding.clientLogoUrl` in `tenant.json`) may customize accent color and optionally show a client logo alongside NuIQ's — but never replace the NuIQ mark or the NuAIg footer credit.
-- **Asset placement is fixed.** All three logos live in `/public` and are referenced by absolute path (`/nuiq-logo.png`, `/nuaig-logo.svg`, `/nuaig-logo-white.svg`) — do not copy them into `src/`, inline them as base64, or import them as modules.
-- The NuAIg wordmark's accent color is `#069BDF` (the only color that differs from the wordmark fill between the light and dark logo variants). It belongs to the NuAIg mark itself and stays in the footer with it — do not adopt it as a NuIQ accent. NuIQ's own palette stays in the deep indigo/blue facet family of `/public/nuiq-logo.png`.
+- **The NuAIg logo is the product's mark, not only a credit.** By explicit decision it is now used in the header/nav, on the sign-in screen, on the landing page, and as the favicon — as well as in the footer credit. The white variant is for the dark chrome; the dark variant for light surfaces.
+- **The favicon is `/public/nuaig-mark.svg`** — the square mark cropped out of `nuaig-logo.svg`, because the full wordmark is unreadable at 16px. It is a crop, not a redrawing: the two polygons are copied verbatim. If NuAIg publishes its own square app icon, replace this file with it.
+- **The NuIQ origami mark is retired from the UI.** `/public/nuiq-logo.png` is still in the repo but nothing references it. Per-client branding (`branding.primaryColor`, `branding.clientLogoUrl` in `tenant.json`) may customize accent color and optionally show a client logo alongside NuAIg's — but never replace the NuAIg mark or the footer credit.
+- **Asset placement is fixed.** All logos live in `/public` and are referenced by absolute path (`/nuaig-logo.svg`, `/nuaig-logo-white.svg`, `/nuaig-mark.svg`) — do not copy them into `src/`, inline them as base64, or import them as modules.
+- The NuAIg wordmark's accent color is `#069BDF` (the only color that differs from the wordmark fill between the light and dark logo variants). It belongs to the NuAIg mark itself — do not adopt it as a UI accent. The app palette stays in the deep indigo/blue `peak-*` family in `globals.css`.
 - **Gradients belong to the app chrome, not to content.** The header, footer, and
   the whole landing page use one indigo gradient family (`.chrome-header` /
   `.chrome-footer` / `.landing-stage` in `globals.css`) so the product is built
   from the same material throughout instead of unrelated flat slabs. Content surfaces stay flat — data should never compete with
   decoration. No glows, no gradient text beyond the wordmark, no gradient on
   cards or charts.
-- **The NuIQ wordmark carries a gradient; the mark never does.** The word "NuIQ" in the header and footer is rendered with a restrained white -> light blue -> indigo gradient (`bg-clip-text`). This is a deliberate, approved exception to the "no gradients" rule below, and applies to the *text* only — the origami mark PNG stays flat and untouched. Do not extend gradients to the mark, to backgrounds, or to UI chrome.
 - Keep the visual language consistent with the origami mark's aesthetic: flat, precise, geometric, restrained color palette (deep indigo/blue family). Avoid generic dashboard-template visual clichés (bar-chart iconography, glowing gradients, stock "AI brain" imagery) anywhere in the product UI, not just the logo.
 
 ---

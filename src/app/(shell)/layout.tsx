@@ -28,7 +28,6 @@ export default async function ShellLayout({
       <TopNav
         items={getNavItems(config)}
         defaultRoute={getDefaultRoute()}
-        clientName={config.displayName}
         clientLogoUrl={config.branding.clientLogoUrl || undefined}
         authControls={<AuthControls />}
       />
