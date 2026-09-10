@@ -33,22 +33,16 @@
   "agents": [
     {
       "type": "foundry",
-      "name": "Quality Insights Agent",
+      "name": "AI Query Agent",
       "display": "chat-panel",
-      "endpoint": "https://kestrelbrook.services.ai.azure.com/api/projects/kestrelbrook",
-      "agentId": "asst_example"
-    },
-    {
-      "type": "copilot-studio",
-      "name": "Care Ops Assistant",
-      "display": "chat-panel",
-      "embedUrl": "https://copilotstudio.microsoft.com/environments/kestrelbrook/bots/care-ops/webchat"
-    },
-    {
-      "type": "power-platform",
-      "name": "Incident Intake",
-      "display": "iframe",
-      "appUrl": "https://apps.powerapps.com/play/e/kestrelbrook/a/incident-intake"
+      "description": "Ask questions in plain language and get an answer back. Built in Azure AI Foundry, so it reaches past the warehouse to whatever sources it has been given.",
+      "suggestions": [
+        "What can you help me with?",
+        "What information can you draw on?",
+        "Summarise what you know about our communities."
+      ],
+      "endpoint": "https://coe-4207-resource.services.ai.azure.com/api/projects/coe-4207",
+      "agentId": "AiFabric"
     }
   ],
   "orgHierarchy": {

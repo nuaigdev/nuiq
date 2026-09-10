@@ -10,13 +10,17 @@ import {
   useState,
 } from "react";
 
-import { askDataAgentAction } from "@/app/(shell)/data-agents/actions";
 import { useFocusMode } from "@/lib/focus-mode";
 
 import { playArrivalPing, unlockAudio } from "./ping";
 
 /**
- * State for one data agent conversation.
+ * State for one agent conversation.
+ *
+ * Shared by both conversational tabs: a Fabric data agent (§5 Tab 3) and a
+ * chat-panel agent on a platform like Foundry (§5 Tab 4). Nothing here knows
+ * which — the caller supplies an `ask` transport, and everything else about the
+ * exchange is the same either way.
  *
  * The transcript lives here for the length of the visit and is never persisted
  * (CLAUDE.md §5 Tab 3). These questions can name communities, residents and
@@ -26,6 +30,12 @@ import { playArrivalPing, unlockAudio } from "./ping";
  * rather than sensitive.
  */
 
+/** What one turn of the conversation costs the caller. */
+export type AskTransport = (
+  question: string,
+  history: { role: "user" | "agent"; text: string }[],
+) => Promise<{ answer?: string; error?: string }>;
+
 export type Turn =
   | { id: string; role: "user"; text: string }
   | { id: string; role: "agent"; text: string }
@@ -33,6 +43,11 @@ export type Turn =
 
 type ChatContextValue = {
   agentName: string;
+  /**
+   * Where a sent question keeps running after someone stops waiting — "Fabric",
+   * "Foundry". Named so the stop control can say what it does and does not do.
+   */
+  platform: string;
   turns: Turn[];
   /** Waiting on Fabric: the question is out, nothing has come back. */
   pending: boolean;
@@ -75,12 +90,14 @@ function nextId() {
 }
 
 export function AgentChatProvider({
-  agentId,
   agentName,
+  platform,
+  ask: askTransport,
   children,
 }: {
-  agentId: string;
   agentName: string;
+  platform: string;
+  ask: AskTransport;
   children: React.ReactNode;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -149,7 +166,7 @@ export function AgentChatProvider({
       setElapsed(0);
       setPending(true);
 
-      void askDataAgentAction(agentId, trimmed, history).then((result) => {
+      void askTransport(trimmed, history).then((result) => {
         if (ticket !== ticketRef.current) return;
 
         const id = nextId();
@@ -166,14 +183,14 @@ export function AgentChatProvider({
         setPending(false);
       });
     },
-    [agentId, pending, turns],
+    [askTransport, pending, turns],
   );
 
   /*
    * Stopping.
    *
-   * A question already sent keeps running in Fabric — a server action cannot be
-   * cancelled from the browser, and a control that implied otherwise would be
+   * A question already sent keeps running on the platform — a server action
+   * cannot be cancelled from the browser, and a control that implied otherwise would be
    * lying. What this does is stop *waiting* for it, which is the thing someone
    * actually wants three minutes into a question they have thought better of.
    * Mid-reveal it means something narrower and entirely honest: show the rest
@@ -242,6 +259,7 @@ export function AgentChatProvider({
   const value = useMemo<ChatContextValue>(
     () => ({
       agentName,
+      platform,
       turns,
       pending,
       elapsed,
@@ -261,6 +279,7 @@ export function AgentChatProvider({
     }),
     [
       agentName,
+      platform,
       turns,
       pending,
       elapsed,

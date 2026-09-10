@@ -183,12 +183,18 @@ src/app/page.tsx                 Landing page (Tab 1) — the diagram, no chrome
 src/app/layout.tsx               <html>, font, login gate — no visible chrome
 src/app/(shell)/layout.tsx       TopNav + Footer; every portal tab lives here (§5)
 src/components/landing/          the landing diagram: data, glyphs, SVG
-src/components/                  TopNav, Footer, PageShell
+src/components/agent-chat/       the conversation surface, shared by Tabs 3 and 4
+src/components/data-agent/       what makes that surface a Fabric data agent (Tab 3)
+src/components/ai-agent/         one component per Tab 4 rendering mode, + the registry
+src/components/                  TopNav, Footer, PageShell, AgentTile, DashboardTile
 src/lib/tenant-config.ts         CLIENT_ID -> config document, validation, fail-loud
 src/lib/navigation.ts            the four tabs, fixed order, config-driven visibility
 src/lib/session.ts               signed-in user + delegated Power BI token
 src/lib/config-store/            ConfigStore interface + provider adapters (§3)
 src/lib/dashboard-store.ts       dashboards derived from config (see §5 Tab 2)
+src/lib/fabric.ts                asking a Fabric data agent, over MCP (§5 Tab 3)
+src/lib/foundry.ts               asking a Foundry agent, over Responses (§5 Tab 4)
+src/lib/ai-agent-store.ts        Tab 4 agents derived from config, slugs, labels
 src/lib/admin.ts                 who may administer this deployment (§6)
 src/app/(shell)/dashboards/manage/  admin add/remove screen, role-gated
 scripts/seed-config.ts           one-off seeding of a client's config document
@@ -248,7 +254,7 @@ deliberately rather than discovering it during a compliance review.
 - **Data warehouse**: Microsoft Fabric (Warehouse/Lakehouse), already owned by clients — NuIQ does not provision or manage this.
 - **BI**: Power BI, embedded via `powerbi-client-react` and server-minted embed tokens (Power BI REST API) — not plain iframe links, so row-level security and interactivity work.
 - **Fabric data agents**: the client's own data agents published in their Fabric workspace, queried over the Fabric data agent API with Entra ID auth. These are distinct from the agent platforms below — they answer over the warehouse itself, and get their own tab. See §5 Tab 3.
-- **Agent platforms**: Azure AI Foundry (custom chat UI calling the Agent Service REST API/SDK), Copilot Studio (web chat embed via Direct Line/Bot Framework Web Chat), Power Platform / Power Apps (iframe embed of the canvas app player URL). Support all three as pluggable agent "types" per client config — don't hardcode assumptions about which platform a given client uses. See §5 Tab 4.
+- **Agent platforms**: Azure AI Foundry (custom chat UI calling the agent-scoped Responses API on the project endpoint, as the application — see §5 Tab 4), Copilot Studio (web chat embed via Direct Line/Bot Framework Web Chat), Power Platform / Power Apps (iframe embed of the canvas app player URL). Support all three as pluggable agent "types" per client config — don't hardcode assumptions about which platform a given client uses. See §5 Tab 4.
 - **Secrets**: Azure Key Vault per client, Managed Identity, no secrets in repo or in plain env files.
 
 ### Explicitly not using
@@ -557,8 +563,76 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 
 - Each client's `tenant.json` lists these under `agents`, each with a `type` field (`foundry`, `copilot-studio`, `power-platform`).
 - **Presentation varies per agent, and that is the point of this tab.** Unlike Tab 3, these agents do not share one visual treatment: a Foundry agent renders in our own chat UI against the Agent Service API, a Copilot Studio agent renders as a Direct Line / Bot Framework Web Chat embed, a Power Platform agent is an iframe of the canvas app player URL. Drive this from a per-agent `display` field in config plus the `type`, and build one component per rendering mode — do not force all agents into one chat frame, and do not switch on `type` inline inside a single mega-component.
+- **`AgentSurface.tsx` is the only place that decides.** It maps `display` (narrowed by `type`) to one component per mode — `FoundryChat`, `EmbeddedApp`, `AgentLinkCard` — and anything without a renderer falls through to the link card rather than erroring. Adding a mode means adding a component and a branch there; the routes and the tab layout do not change.
 - New agent types and display modes should be addable by adding a component and a config entry, without touching the tab's own layout code.
 - Agents not yet ready for full embed can render as a linked card instead of a live embed — this should be a graceful per-agent fallback, not a special-cased hack.
+- **The conversation surface is shared with Tab 3, not rebuilt.** `components/agent-chat/` owns the workspace, the transcript, the composer and the reveal; a tab supplies the transport, the copy, and where the "back" link goes. Nothing in `agent-chat` knows which platform it is talking to. Do not fork it to make a Tab 4 change — parameterise it, as `DataAgentChat` and `FoundryChat` both do.
+- **The tab is a gallery of tiles**, the same shape as Dashboards and Conversational Data Agents, opening each agent at its own URL `/ai-agents/<slug>`. The slug comes from the agent's display name: config gives these agents no id, and an endpoint is the wrong thing to route on. `AgentTile` is shared with Tab 3 and `DashboardTile` matches it — the three galleries must keep reading as one product, so a change to one tile is a change to all three.
+- **There is no explanatory preamble on this page**, by decision. The agent's own context panel says what it is and what to ask it, at the point that is useful. The prose header, the platform/display badges and the "how these differ from data agents" aside were all removed — do not reintroduce them.
+
+**Foundry: this call runs as the application, not as the user.** Read this before
+changing `lib/foundry.ts`.
+
+- A published prompt agent is reached over the **agent-scoped Responses API** on
+  the project endpoint:
+  `POST {endpoint}/agents/{agentName}/endpoint/protocols/openai/responses?api-version=v1`,
+  which is OpenAI-Responses-compatible. In config, `endpoint` is the *project*
+  endpoint (`https://<resource>.services.ai.azure.com/api/projects/<project>`)
+  and `agentId` is the agent's **name** — Foundry's v1 API addresses agents by
+  name and version, not by an `asst_` id. Both are readable straight out of a
+  Foundry portal URL: `/r/<sub>,<rg>,,<resource>,<project>/build/agents/<name>/build`.
+- **Foundry publishes no delegated scope, so there is no on-behalf-of flow.** Its
+  data plane is secured with Azure RBAC, and a user's token cannot be exchanged
+  for one this endpoint accepts. Do not go looking for a delegated permission to
+  add in the app registration — there isn't one, and adding `https://ai.azure.com`
+  there does nothing. The deployment's own app registration is granted a Foundry
+  role (**Foundry User** is enough to run an agent) on the project under Access
+  control (IAM), and calls with client credentials.
+- **The consequence is stated on screen, not hidden.** An answer here is *not*
+  scoped to the asking user's warehouse permissions or facility scope, unlike
+  Tab 2 and Tab 3. The chat's privacy note says so in as many words. Never write
+  copy on this tab implying questions "run as you" — in this industry someone
+  will act on that.
+- **Therefore: do not point a Foundry agent at PHI or community-level clinical
+  detail** until either Foundry supports delegated access or the agent's own data
+  sources enforce the scoping (§2, §6). This is §5 Tab 4's compliance question in
+  concrete form, and it is open.
+- **Two token audiences are tried, in order**: `https://ai.azure.com/.default`
+  (what Microsoft's own REST quickstart uses) then
+  `https://cognitiveservices.azure.com/.default`, because which one an account
+  accepts depends on how it was provisioned and the failure is an opaque 401
+  either way. Keep the fallback.
+- **Multi-turn context is replayed from the browser, not stored in Foundry.**
+  Foundry conversations persist in the project, which would mean this portal
+  leaving free text that can name residents and incidents on a platform whose
+  data handling has not been reviewed for this client. A bounded window of recent
+  turns is sent in the `input` array instead. Do not switch to server-side
+  conversations without deciding that question first.
+- Answers can take minutes, so the routes set `maxDuration = 300` and the fetch
+  aborts at 240s — our own timeout produces a message, the platform's produces a
+  bare 504. The same reasoning as Tab 3.
+- **A tool the agent is built on can refuse even when the agent runs.** Foundry
+  answers 200 and reports it in the body, so it cannot be read off the status
+  code — `readToolDenial` recognises it and it gets its own `tool-access` state,
+  because nothing is wrong with this portal's access and the fix is in the
+  agent's own tool configuration. This is not hypothetical: the first live call
+  to `AiFabric` came back denied on
+  `v1/mcp/fabricaihub/integrations/m365`.
+- **Fabric IQ tools mostly need a *user* identity, which this call does not
+  have.** Microsoft is explicit that ontology and Power BI semantic model
+  connections use delegated (OBO) auth and run as the signed-in user;
+  application-only access is supported *only* on a published Fabric **data
+  agent** MCP endpoint, whose token is requested with
+  `https://api.fabric.microsoft.com/.default`. So a Foundry agent fronting Fabric
+  data will generally fail under this tab's app identity. When the goal is
+  questions over the warehouse, Tab 3 is the right tab — it already runs as the
+  user. Do not try to fix this by giving the app broader Fabric rights; that
+  recreates exactly the shared high-privilege identity §5 Tab 2 rejected.
+- **Agents are not yet editable from the portal.** Unlike dashboards and data
+  agents there is no `/ai-agents/manage`, so changing this list means editing the
+  client's config document. Re-seeding the whole document with `--force` would
+  discard dashboards an admin added through the portal — write only the `agents`
+  key, conditional on the etag.
 - Never route PHI-bearing free text into an agent platform without confirming that platform's data handling posture is appropriate for this client's compliance requirements — flag this rather than assuming it's fine. This matters more here than in Tab 3: a Fabric data agent stays inside the client's own Fabric tenant, whereas these platforms may carry data across a boundary the client has not reviewed.
 
 ---
@@ -588,6 +662,7 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 ## 8. Branding & footer requirements
 
 - Footer must always read **"Powered by NuAIg"** with the NuAIg logo (`/public/nuaig-logo.svg`, or `/public/nuaig-logo-white.svg` on a dark footer), on every page, in every client deployment. This is client-agnostic and must not be configurable away via `tenant.json`.
+- **It is one compact bar, the same on every page.** Credit on the left, `/about` and the copyright line on the right, and nothing else. It used to carry a paragraph describing the product above the credit, which the viewport-locked routes then hid to win back height — so a dashboard or a conversation already showed the short version, and it read better there than the tall one did anywhere else. The tall variant is **gone, not conditional**: a footer that changes shape between pages is a footer the eye has to re-find. Do not reintroduce a descriptive block, and do not add portal links — the header carries navigation, and repeating it here duplicates the top of the page at the bottom of it.
 - **The landing page is the one exception, by explicit decision.** It carries no footer — and therefore no footer credit — because it carries no chrome at all. Instead the NuAIg mark is the page's own identity, centred above the diagram. The credit is not lost, it is promoted. This exemption is for `src/app/page.tsx` alone; every other route renders inside `(shell)` and keeps the footer.
 - **The NuAIg logo is the product's mark, not only a credit.** By explicit decision it is now used in the header/nav, on the sign-in screen, on the landing page, and as the favicon — as well as in the footer credit. The white variant is for the dark chrome; the dark variant for light surfaces.
 - **The favicon is `/public/nuaig-mark.svg`** — the square mark cropped out of `nuaig-logo.svg`, because the full wordmark is unreadable at 16px. It is a crop, not a redrawing: the two polygons are copied verbatim. If NuAIg publishes its own square app icon, replace this file with it.

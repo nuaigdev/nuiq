@@ -14,7 +14,14 @@ const controlClass =
  * The conversation itself: a fixed header, the message list — the only thing on
  * the route that scrolls — and an input bar pinned to the bottom of the panel.
  */
-export function ChatPanel({ suggestions }: { suggestions: string[] }) {
+export function ChatPanel({
+  suggestions,
+  subtitle,
+}: {
+  suggestions: string[];
+  /** One line under the agent's name saying where its answers come from. */
+  subtitle: string;
+}) {
   const { agentName, soundOn, toggleSound, fullscreen, toggleFullscreen } =
     useChat();
 
@@ -30,7 +37,7 @@ export function ChatPanel({ suggestions }: { suggestions: string[] }) {
             {agentName}
           </p>
           <p className="text-[11.5px] leading-tight text-ink-subtle">
-            Answers from your Fabric warehouse
+            {subtitle}
           </p>
         </div>
 

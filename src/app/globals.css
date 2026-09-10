@@ -166,24 +166,12 @@ html[data-app-lock="viewport"] .app-main {
   overflow: hidden;
 }
 
-/* The footer's margin and its descriptive half both cost viewport height we
- * do not have here. The "Powered by NuAIg" credit itself always stays — §8. */
+/* The footer's top margin is page whitespace, and there is none to spare on a
+ * route that owns the viewport. The bar itself is already compact everywhere,
+ * so nothing else needs overriding here — and the "Powered by NuAIg" credit
+ * stays visible either way (§8). */
 html[data-app-lock="viewport"] .app-footer {
   margin-top: 0;
-}
-
-html[data-app-lock="viewport"] .app-footer-verbose {
-  display: none;
-}
-
-html[data-app-lock="viewport"] .app-footer-credit {
-  margin-top: 0;
-  border-top: 0;
-  padding-top: 0;
-}
-
-html[data-app-lock="viewport"] .app-footer-inner {
-  padding-block: 0.875rem;
 }
 
 /* --- focus mode ----------------------------------------------------------- */

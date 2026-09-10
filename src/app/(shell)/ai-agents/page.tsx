@@ -1,76 +1,63 @@
-import { NotWiredYet, PageShell } from "@/components/PageShell";
+import { AgentTile } from "@/components/AgentTile";
+import {
+  agentSlug,
+  getPlatformAgents,
+  PLATFORM_LABELS,
+} from "@/lib/ai-agent-store";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 export const metadata = { title: "Advanced AI Agents" };
 
-const TYPE_LABELS: Record<string, string> = {
-  foundry: "Azure AI Foundry",
-  "copilot-studio": "Copilot Studio",
-  "power-platform": "Power Platform",
-};
+/** Agents come from the client's configuration document, never from the build. */
+export const dynamic = "force-dynamic";
 
-const DISPLAY_LABELS: Record<string, string> = {
-  "chat-panel": "Chat panel",
-  iframe: "Embedded app",
-  "link-card": "Opens externally",
-};
-
+/**
+ * Tab 4 (CLAUDE.md §5).
+ *
+ * A gallery of tiles, the same shape as Dashboards and Conversational Data
+ * Agents — the three galleries share `AgentTile`/`DashboardTile` so they read as
+ * one product. Each agent opens at its own URL, so a colleague can be linked
+ * straight to one.
+ *
+ * There is deliberately no explanatory preamble here. The agent's own context
+ * panel says what it is and what to ask it, which is the same information at
+ * the point it is useful.
+ */
 export default async function AiAgentsPage() {
-  const { agents } = await getTenantConfig();
+  const config = await getTenantConfig();
+  const agents = getPlatformAgents(config);
 
   return (
-    <PageShell
-      eyebrow="Foundry & Copilot"
-      title="Advanced AI Agents"
-      intro="Assistants for the work that reaches past the warehouse — drafting, summarising, guiding a process, or pulling from systems the reporting layer never sees. Built on Azure AI Foundry, Copilot Studio, and Power Platform, so each one appears in whatever form suits it."
-    >
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {agents.map((agent) => (
-            <li
-              key={`${agent.type}:${agent.name}`}
-              className="card rounded-xl p-5"
-            >
-              <h2 className="text-sm font-semibold text-ink">{agent.name}</h2>
-              <p className="mt-1.5 text-xs text-ink-muted">
-                {TYPE_LABELS[agent.type] ?? agent.type}
-              </p>
-              <span className="mt-3 inline-block rounded bg-peak-50 px-2 py-0.5 text-[11px] font-medium text-peak-700">
-                {DISPLAY_LABELS[agent.display] ?? agent.display}
-              </span>
-            </li>
-          ))}
+    <div className="mx-auto max-w-[1600px] px-6 py-9">
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-ink">
+        Advanced AI Agents
+      </h1>
+
+      {agents.length === 0 ? (
+        <div className="mt-8 rounded-xl border border-dashed border-hairline-strong bg-surface p-10 text-center">
+          <p className="text-sm text-ink-muted">
+            No AI agents are configured for this portal yet.
+          </p>
+        </div>
+      ) : (
+        <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {agents.map((agent) => {
+            const slug = agentSlug(agent);
+            return (
+              <li key={slug}>
+                <AgentTile
+                  href={`/ai-agents/${slug}`}
+                  name={agent.name}
+                  description={agent.description}
+                  eyebrow={PLATFORM_LABELS[agent.type] ?? agent.type}
+                  cta={agent.display === "chat-panel" ? "Ask" : "Open"}
+                  seed={slug}
+                />
+              </li>
+            );
+          })}
         </ul>
-
-        <aside className="card rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-ink">
-            How these differ from Data Agents
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-            A data agent answers <em>from</em> the warehouse. These agents are
-            built on separate platforms and may reach other systems entirely, so
-            they are useful for different work — and they carry different data
-            handling.
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-            Take care with resident detail in free text here. A Fabric data agent
-            stays inside your own tenant; these platforms may not, and that is a
-            question worth answering per agent rather than assuming.
-          </p>
-        </aside>
-      </div>
-
-      <div className="mt-6">
-        <NotWiredYet>
-          Renderers not built yet. Build one component per display mode and
-          select it from the agent&rsquo;s{" "}
-          <code className="text-ink">display</code> field — not a single chat
-          frame for everything, and not a{" "}
-          <code className="text-ink">type</code> switch inlined in one
-          mega-component. An agent not ready to embed falls back to a link card
-          (CLAUDE.md §5 Tab 4).
-        </NotWiredYet>
-      </div>
-    </PageShell>
+      )}
+    </div>
   );
 }

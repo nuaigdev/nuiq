@@ -22,7 +22,12 @@ import { FacetField } from "./FacetField";
  * Everything here is monochrome. The accent belongs to the conversation.
  */
 
-export type AgentLink = { id: string; name: string };
+/**
+ * A sibling agent to offer alongside this one. The href is supplied rather than
+ * derived, because these props cross the server/client boundary — a function
+ * could not be passed here, and the two tabs route differently anyway.
+ */
+export type AgentLink = { id: string; name: string; href: string };
 
 function PromptList({ suggestions }: { suggestions: string[] }) {
   const { applySuggestion } = useChat();
@@ -63,7 +68,7 @@ function OtherAgents({
         {others.map((agent) => (
           <li key={agent.id}>
             <Link
-              href={`/data-agents/${agent.id}`}
+              href={agent.href}
               className="inline-flex items-center gap-2 rounded-full border border-canvas-line bg-surface/70 py-1.5 pl-1.5 pr-3 text-[12.5px] text-ink-muted transition-colors hover:border-peak-300 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"
             >
               <AgentGlyph seed={agent.name} className="h-4 w-4" />
@@ -76,36 +81,47 @@ function OtherAgents({
   );
 }
 
-const PRIVACY_NOTE =
-  "Questions run as you, so an answer never reaches past your own access. Nothing in this conversation is saved.";
-
 const BACK_LINK_CLASS =
   "inline-flex items-center gap-1.5 text-[12.5px] text-ink-subtle transition-colors hover:text-peak-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500";
+
+export type ContextProps = {
+  description?: string;
+  suggestions: string[];
+  agents: AgentLink[];
+  currentId: string;
+  /** What kind of agent this is — "Fabric data agent", "Azure AI Foundry". */
+  eyebrow: string;
+  backHref: string;
+  backLabel: string;
+  /**
+   * Who the questions run as, and what is kept. It differs per platform and is
+   * the one thing on this panel a user in this industry must not have to guess
+   * at, so it is stated rather than assumed (CLAUDE.md §2).
+   */
+  privacyNote: string;
+};
 
 export function ContextPanel({
   description,
   suggestions,
   agents,
   currentId,
-}: {
-  description?: string;
-  suggestions: string[];
-  agents: AgentLink[];
-  currentId: string;
-}) {
+  eyebrow,
+  backHref,
+  backLabel,
+  privacyNote,
+}: ContextProps) {
   const { agentName } = useChat();
 
   return (
     <aside className="relative hidden min-h-0 flex-col overflow-hidden bg-canvas-ground lg:flex">
       <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto px-8 py-7 xl:px-12">
-        <Link href="/data-agents" className={BACK_LINK_CLASS}>
+        <Link href={backHref} className={BACK_LINK_CLASS}>
           <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
-          All data agents
+          {backLabel}
         </Link>
 
-        <p className="mt-7 text-[12px] font-medium text-peak-600">
-          Fabric data agent
-        </p>
+        <p className="mt-7 text-[12px] font-medium text-peak-600">{eyebrow}</p>
         <h1 className="mt-2 max-w-[16ch] text-[30px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">
           {agentName}
         </h1>
@@ -125,7 +141,7 @@ export function ContextPanel({
         <OtherAgents agents={agents} currentId={currentId} />
 
         <p className="mt-8 max-w-[46ch] border-t border-canvas-line pt-5 text-[12.5px] leading-[1.65] text-ink-subtle">
-          {PRIVACY_NOTE}
+          {privacyNote}
         </p>
       </div>
 
@@ -145,12 +161,10 @@ export function MobileContextStrip({
   suggestions,
   agents,
   currentId,
-}: {
-  description?: string;
-  suggestions: string[];
-  agents: AgentLink[];
-  currentId: string;
-}) {
+  backHref,
+  backLabel,
+  privacyNote,
+}: ContextProps) {
   const { agentName } = useChat();
   const [open, setOpen] = useState(false);
 
@@ -198,11 +212,11 @@ export function MobileContextStrip({
               </div>
               <OtherAgents agents={agents} currentId={currentId} />
               <p className="mt-4 text-[12px] leading-[1.6] text-ink-subtle">
-                {PRIVACY_NOTE}
+                {privacyNote}
               </p>
-              <Link href="/data-agents" className={`${BACK_LINK_CLASS} mt-4`}>
+              <Link href={backHref} className={`${BACK_LINK_CLASS} mt-4`}>
                 <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
-                All data agents
+                {backLabel}
               </Link>
             </div>
           </motion.div>

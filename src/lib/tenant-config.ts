@@ -62,7 +62,20 @@ const agentSchema = z.object({
   name: z.string().min(1),
   // Drives which rendering mode the agent gets in Tab 4 (CLAUDE.md §5).
   display: z.enum(DISPLAY_MODES).default("chat-panel"),
+  /** What this agent is for, in the reader's language. Shown beside the chat. */
+  description: z.string().optional(),
+  /**
+   * Openers offered before the first question, for the same reason as on a data
+   * agent: what makes a good question depends on what this particular agent was
+   * built to do, which only its configuration knows.
+   */
+  suggestions: z.array(z.string().min(1)).default([]),
+  /**
+   * Foundry: the *project* endpoint,
+   * `https://<resource>.services.ai.azure.com/api/projects/<project>`.
+   */
   endpoint: z.string().optional(),
+  /** Foundry: the agent's name. The v1 API addresses agents by name. */
   agentId: z.string().optional(),
   embedUrl: z.string().optional(),
   appUrl: z.string().optional(),

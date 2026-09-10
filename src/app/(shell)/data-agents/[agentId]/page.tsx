@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { AgentWorkspace } from "@/components/data-agent/AgentWorkspace";
+import { DataAgentChat } from "@/components/data-agent/DataAgentChat";
 import {
   FALLBACK_SUGGESTIONS,
   findDataAgent,
@@ -43,7 +43,11 @@ export default async function DataAgentPage({
   const agent = findDataAgent(config, agentId);
   if (!agent) notFound();
 
-  const agents = getDataAgents(config).map(({ id, name }) => ({ id, name }));
+  const agents = getDataAgents(config).map(({ id, name }) => ({
+    id,
+    name,
+    href: `/data-agents/${id}`,
+  }));
 
   // The openers belong to the agent, not to this page: what makes a good
   // question depends on the schema it was published over.
@@ -51,7 +55,7 @@ export default async function DataAgentPage({
     agent.suggestions.length > 0 ? agent.suggestions : FALLBACK_SUGGESTIONS;
 
   return (
-    <AgentWorkspace
+    <DataAgentChat
       agentId={agent.id}
       agentName={agent.name}
       description={agent.description}

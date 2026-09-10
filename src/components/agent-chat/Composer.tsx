@@ -14,6 +14,7 @@ const MAX_INPUT_HEIGHT = 148;
 export function Composer({ suggestions }: { suggestions: string[] }) {
   const {
     agentName,
+    platform,
     draft,
     setDraft,
     ask,
@@ -122,7 +123,7 @@ export function Composer({ suggestions }: { suggestions: string[] }) {
               onClick={interrupt}
               title={
                 pending
-                  ? "Stop waiting. The question keeps running in Fabric."
+                  ? `Stop waiting. The question keeps running in ${platform}.`
                   : "Show the rest of the answer"
               }
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-canvas-line bg-surface text-ink-muted transition-colors hover:border-peak-300 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"

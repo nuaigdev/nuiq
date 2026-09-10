@@ -1,34 +1,10 @@
 import Link from "next/link";
 
+import { AgentTile } from "@/components/AgentTile";
 import { getDataAgents } from "@/lib/data-agent-store";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 export const metadata = { title: "Conversational Data Agent" };
-
-/** Stable facet pattern per agent, so a tile always looks the same. */
-function hashOf(value: string): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  }
-  return hash;
-}
-
-function AgentFacet({ seed }: { seed: string }) {
-  const hash = hashOf(seed);
-  const a = 22 + (hash % 26);
-  const b = 58 + ((hash >> 4) % 22);
-  const lift = 14 + ((hash >> 8) % 14);
-
-  return (
-    <svg viewBox="0 0 160 60" preserveAspectRatio="none" aria-hidden className="h-full w-full">
-      <rect width="160" height="60" className="fill-peak-50" />
-      <polygon points={`0,60 ${a},${lift} ${a + 26},60`} className="fill-peak-300/45" />
-      <polygon points={`${a},${lift} ${b},${lift + 12} ${b},60 ${a + 26},60`} className="fill-peak-600/30" />
-      <polygon points={`${b},${lift + 12} 160,${lift - 3} 160,60 ${b},60`} className="fill-peak-800/20" />
-    </svg>
-  );
-}
 
 export default async function DataAgentsPage() {
   const config = await getTenantConfig();
@@ -77,30 +53,13 @@ export default async function DataAgentsPage() {
         <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {agents.map((agent) => (
             <li key={agent.id}>
-              <Link
+              <AgentTile
                 href={`/data-agents/${agent.id}`}
-                className="card card-interactive group block overflow-hidden rounded-xl"
-              >
-                <div className="h-[76px] w-full border-b border-hairline">
-                  <AgentFacet seed={agent.id} />
-                </div>
-                <div className="p-5">
-                  <h2 className="text-sm font-semibold text-ink group-hover:text-peak-700">
-                    {agent.name}
-                  </h2>
-                  {agent.description ? (
-                    <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-ink-muted">
-                      {agent.description}
-                    </p>
-                  ) : null}
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-peak-600">
-                    Ask
-                    <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
-                      &rarr;
-                    </span>
-                  </span>
-                </div>
-              </Link>
+                name={agent.name}
+                description={agent.description}
+                cta="Ask"
+                seed={agent.id}
+              />
             </li>
           ))}
         </ul>
