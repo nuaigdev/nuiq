@@ -51,11 +51,8 @@ export function AgentGallery({
         aria-label={listLabel}
         className="card rounded-2xl p-2.5 md:col-span-2 lg:col-span-1"
       >
-        <div className="flex items-center justify-between px-3 pb-3 pt-2.5">
+        <div className="px-3 pb-3 pt-2.5">
           <h2 className="text-[13px] font-semibold text-ink">{listLabel}</h2>
-          <span className="text-[12px] text-ink-subtle">
-            Select one to open it
-          </span>
         </div>
         <ul className="space-y-2">
           {agents.map((agent, i) => (
