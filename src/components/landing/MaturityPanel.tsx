@@ -134,66 +134,6 @@ function LevelLink({
   );
 }
 
-/** A dashed rising line through `points`, with a packet climbing it. */
-function AscentLine({
-  points,
-  reduced,
-  delay,
-}: {
-  points: [number, number][];
-  reduced: boolean;
-  delay: number;
-}) {
-  const d = points.map(([x, y], i) => `${i ? "L" : "M"} ${x} ${y}`).join(" ");
-  const [ex, ey] = points[points.length - 1];
-  const [px, py] = points[points.length - 2];
-  const angle = (Math.atan2(ey - py, ex - px) * 180) / Math.PI;
-  return (
-    <g>
-      <motion.path
-        d={d}
-        fill="none"
-        stroke="#c2d7fc"
-        strokeOpacity={0.55}
-        strokeWidth={1.5}
-        strokeDasharray="5 6"
-        strokeLinecap="round"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: 0.9, delay, ease: "easeOut" }}
-      />
-      <motion.path
-        d="M -9 -5 L 0 0 L -9 5"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        transform={`translate(${ex} ${ey}) rotate(${angle})`}
-        {...fade(delay + 0.8)}
-      />
-      {!reduced ? (
-        <circle r="4.5" fill="#ffffff" filter="url(#packet-glow)">
-          <animateMotion
-            dur="3.2s"
-            begin={`${delay + 0.9}s`}
-            repeatCount="indefinite"
-            path={d}
-          />
-          <animate
-            attributeName="opacity"
-            values="0;1;1;0"
-            keyTimes="0;0.1;0.85;1"
-            dur="3.2s"
-            begin={`${delay + 0.9}s`}
-            repeatCount="indefinite"
-          />
-        </circle>
-      ) : null}
-    </g>
-  );
-}
-
 /* ------------------------------------------------------------------------ */
 /* A · Staircase — four columns rising left to right from one baseline.      */
 /* ------------------------------------------------------------------------ */
@@ -295,12 +235,6 @@ function Staircase({
           </motion.g>
         </LevelLink>
       ))}
-
-      <AscentLine
-        reduced={reduced}
-        delay={0.9}
-        points={bars.map(({ x, w, y }) => [x + w / 2, y - 18])}
-      />
     </g>
   );
 }
@@ -670,15 +604,6 @@ function Bars({
           </LevelLink>
         );
       })}
-
-      <AscentLine
-        reduced={reduced}
-        delay={1}
-        points={rows.map(({ level, cy }) => [
-          trackX + level.level * segW + (level.level - 1) * segGap + 10,
-          cy - trackH / 2 - 10,
-        ])}
-      />
     </g>
   );
 }
