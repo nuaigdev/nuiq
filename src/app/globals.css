@@ -592,6 +592,23 @@ html[data-app-focus="on"] .app-footer {
   }
 }
 
+/* The "explore the maturity path" pill, breathing so it reads as clickable. */
+.landing-affordance {
+  animation: landing-affordance 2.8s ease-in-out infinite;
+}
+
+@keyframes landing-affordance {
+  0%,
+  100% {
+    stroke-opacity: 0.45;
+    fill-opacity: 0.08;
+  }
+  50% {
+    stroke-opacity: 1;
+    fill-opacity: 0.18;
+  }
+}
+
 .landing-pulse-ring {
   transform-box: fill-box;
   transform-origin: center;

@@ -304,8 +304,10 @@ copy below it — the one thing on screen besides the NuAIg mark is the picture 
 how data reaches the portal. Do not add sections to this page; anything that
 wants a page of its own gets a route in `(shell)`.
 
-- **The diagram**: twelve senior living source systems on the left, each with
-  its vendor mark → a secure ingestion gate they all converge on → the Microsoft
+- **The diagram**: twenty-five senior living source systems on the left, each
+  with its vendor mark, grouped into six domain cards (Clinical & EHR, Sales &
+  Occupancy, Resident Experience, Workforce & Payroll, Finance & Accounting,
+  Risk, Quality & Facilities) → a secure ingestion gate they all converge on → the Microsoft
   Fabric platform as a five-stage stack (Ingestion, Transformation, Warehouse /
   Lakehouse, **Knowledge / Semantic Layer**, Governance & Security) → three
   destinations on the right. Inline SVG in one coordinate space
@@ -320,11 +322,14 @@ wants a page of its own gets a route in `(shell)`.
 - **The NuAIg mark is the page's identity**, centred above the diagram (§8),
   and larger here than in the header since it is the page's only chrome.
 - **No column headings.** "Source systems" and "In this portal" were removed:
-  the twelve vendor marks and the three destination cards say what each column
-  is without being labelled. The drawing is lifted by offsetting the viewBox
+  the vendor marks and the three destination cards say what each column is
+  without being labelled. The domain labels on the source groups are not column
+  headings — past twelve systems one row each stopped fitting, and grouping by
+  domain is both what fits and what an operator recognises. Each group is one
+  feed onto the bus, not one line per system. The drawing is lifted by offsetting the viewBox
   origin, so every coordinate in `landing-data.ts` still means what it says.
 - **Everything is arranged on one axis.** `AXIS_Y` is the vertical centre of the
-  platform, and the twelve sources, the ingestion gate and the three
+  platform, and the source groups (stacked as one block), the ingestion gate and the three
   destinations all centre on it too; the platform is horizontally centred on the
   canvas, so it sits directly under the NuAIg mark. Those four alignments are
   what make the page read as one composition rather than three adjacent
@@ -335,9 +340,9 @@ wants a page of its own gets a route in `(shell)`.
   and it cannot know it; flexbox can. Coordinates stay in the SVG, layout
   happens in HTML, nothing is measured. `pointer-events` is off on the overlay
   so the rect underneath stays the hit target.
-- **The platform stages and destination cards centre; the twelve source rows
-  align left.** Twelve stacked rows of differing name length read as ragged when
-  each is centred on its own, where a shared left edge gives the column one
+- **The platform stages and destination cards centre; the source groups align
+  left.** Stacked chips of differing name length read as ragged when each is
+  centred on its own, where a shared left edge gives the column one
   clean line to scan down. The stages and cards are few, and each is its own
   object rather than one item in a list, so centring suits them.
 - **The entrance animation fades, it does not translate.** Safari has
@@ -359,10 +364,28 @@ wants a page of its own gets a route in `(shell)`.
   quietly grow it into, real lineage. If it should instead name each client's own
   systems, that list belongs in `tenant.json`, not in the component.
 - **Vendor marks live in `/public/logos`** as small PNGs, referenced by absolute
-  path. Where no mark could be sourced (CareSage, FullCount) the tile draws a
-  lettermark, and where the row is a category rather than a product (Finance /
-  GL, Payroll / HR, Pharmacy, Other systems) it draws a flat geometric glyph.
-  Never substitute a similarly-named company's logo.
+  path. Where no mark could be sourced (CareSage, WorxHub) the chip draws a
+  lettermark, and where the chip is a category rather than a product (Pharmacy,
+  Other systems) it draws a flat geometric glyph. The Finance / GL and Payroll /
+  HR category rows were retired once named vendors filled those domains. The two
+  Dynamics products carry the Microsoft mark and Sage Intacct the Sage mark —
+  the parent marks they ship under. Never substitute a similarly-named company's
+  logo.
+- **The platform is a button that expands into the maturity path.** Clicking it
+  (or Enter/Space; Escape or clicking off closes) grows the platform rect into a
+  panel drawn in the same SVG coordinate space (`MaturityPanel.tsx`,
+  `MATURITY_LEVELS` in `landing-data.ts`): Level 1 Foundation (the five
+  platform stages), then Visualize, Converse and Advanced — the three
+  destinations, in nav order — each answering a harder question. The rest of
+  the diagram recedes and is made `inert` while it is open. Levels 2–4 are real
+  links to their tabs. A "Explore the maturity path" pill on the platform
+  replaced the old tagline, and each destination card carries its stage name
+  and a four-segment level meter. The levels are illustrative — they describe
+  the product's shape, not this client's progress; nothing on it is a score.
+- **Open — pick one maturity treatment.** The panel currently ships three
+  switchable variants (A Staircase, B Stack, C Bars) behind a switcher in its
+  header, so they can be compared on the real page. Once one is chosen, delete
+  the other two and the switcher; nothing else depends on them.
 
 **Open question — the lineage explorer has no home.** §1 still names "see the
 data model and how data flows" as a core purpose, and the design below (schema
