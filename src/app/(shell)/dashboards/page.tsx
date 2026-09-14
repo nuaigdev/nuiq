@@ -23,7 +23,6 @@ export default async function DashboardsPage() {
         logo="/logos/power-bi.png"
         eyebrow="Power BI"
         title="Power BI Dashboards"
-        intro="Census and occupancy, falls and incidents, staffing — the reports built on your warehouse, opened with your own Microsoft account, so you see exactly the communities you are entitled to."
         count={
           dashboards.length
             ? `${dashboards.length} ${dashboards.length === 1 ? "dashboard" : "dashboards"}`

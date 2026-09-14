@@ -25,7 +25,6 @@ export default async function DataAgentsPage() {
         logo="/logos/microsoft-fabric.png"
         eyebrow="Microsoft Fabric"
         title="Conversational Data Agent"
-        intro="Ask the warehouse a question in plain language and get an answer from your own data. Each agent covers one subject area, and questions run as you, so an answer never reaches past your own access."
         count={agents.length ? `${agents.length} ${agents.length === 1 ? "agent" : "agents"}` : undefined}
         action={
           <Link href="/data-agents/manage" className={HEADER_ACTION_CLASS}>
