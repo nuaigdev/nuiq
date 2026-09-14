@@ -1,4 +1,6 @@
-import { AgentTile } from "@/components/AgentTile";
+import { AgentGallery } from "@/components/gallery/AgentGallery";
+import { EmptyGallery } from "@/components/gallery/EmptyGallery";
+import { GalleryHeader } from "@/components/gallery/GalleryHeader";
 import {
   agentSlug,
   getPlatformAgents,
@@ -14,10 +16,9 @@ export const dynamic = "force-dynamic";
 /**
  * Tab 4 (CLAUDE.md §5).
  *
- * A gallery of tiles, the same shape as Dashboards and Conversational Data
- * Agents — the three galleries share `AgentTile`/`DashboardTile` so they read as
- * one product. Each agent opens at its own URL, so a colleague can be linked
- * straight to one.
+ * The same three-column shape as Conversational Data Agents — agents, a demo
+ * video, a launch video — so the two agent tabs read as one product. Each agent
+ * opens at its own URL, so a colleague can be linked straight to one.
  *
  * There is deliberately no explanatory preamble here. The agent's own context
  * panel says what it is and what to ask it, which is the same information at
@@ -26,38 +27,47 @@ export const dynamic = "force-dynamic";
 export default async function AiAgentsPage() {
   const config = await getTenantConfig();
   const agents = getPlatformAgents(config);
+  const videos = config.videos.aiAgents;
 
   return (
-    <div className="mx-auto max-w-[1600px] px-6 py-9">
-      <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-ink">
-        Advanced AI Agents
-      </h1>
+    <>
+      <GalleryHeader
+        logo="/logos/azure-ai-foundry.png"
+        eyebrow="Agent platforms"
+        title="Advanced AI Agents"
+        count={agents.length ? `${agents.length} ${agents.length === 1 ? "agent" : "agents"}` : undefined}
+      />
 
       {agents.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-hairline-strong bg-surface p-10 text-center">
-          <p className="text-sm text-ink-muted">
-            No AI agents are configured for this portal yet.
-          </p>
-        </div>
+        <EmptyGallery message="No AI agents are configured for this portal yet." />
       ) : (
-        <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {agents.map((agent) => {
-            const slug = agentSlug(agent);
-            return (
-              <li key={slug}>
-                <AgentTile
-                  href={`/ai-agents/${slug}`}
-                  name={agent.name}
-                  description={agent.description}
-                  eyebrow={PLATFORM_LABELS[agent.type] ?? agent.type}
-                  cta={agent.display === "chat-panel" ? "Ask" : "Open"}
-                  seed={slug}
-                />
-              </li>
-            );
-          })}
-        </ul>
+        <AgentGallery
+          listLabel="AI agents"
+          agents={agents.map((agent) => ({
+            href: `/ai-agents/${agentSlug(agent)}`,
+            name: agent.name,
+            description: agent.description,
+            eyebrow: PLATFORM_LABELS[agent.type] ?? agent.type,
+            cta: agent.display === "chat-panel" ? "Ask" : "Open",
+          }))}
+          videos={[
+            {
+              kind: "demo",
+              heading: "See the agents at work",
+              blurb:
+                "A short walkthrough of an agent taking on a real piece of work, from the first request to the result.",
+              video: videos.demo,
+            },
+            {
+              kind: "launch",
+              heading: "Introducing Advanced AI Agents",
+              blurb:
+                "What these agents are built to do, and where they go beyond questions of the warehouse.",
+              video: videos.launch,
+            },
+          ]}
+        />
       )}
-    </div>
+    </>
   );
 }

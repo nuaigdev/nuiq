@@ -120,6 +120,10 @@ The shape of the document is unchanged — non-secret identifiers only:
       "appUrl": "..."
     }
   ],
+  "videos": {
+    "dataAgents": { "demo": { "url": "..." }, "launch": { "url": "..." } },
+    "aiAgents": { "demo": { "url": "..." }, "launch": { "url": "..." } }
+  },
   "orgHierarchy": {
     "levels": ["organization", "region", "community", "unit"]
   },
@@ -186,7 +190,8 @@ src/components/landing/          the landing diagram: data, glyphs, SVG
 src/components/agent-chat/       the conversation surface, shared by Tabs 3 and 4
 src/components/data-agent/       what makes that surface a Fabric data agent (Tab 3)
 src/components/ai-agent/         one component per Tab 4 rendering mode, + the registry
-src/components/                  TopNav, Footer, PageShell, AgentTile, DashboardTile
+src/components/gallery/          the three gallery pages: header band, agent gallery, dashboard card
+src/components/                  TopNav, Footer, PageShell
 src/lib/tenant-config.ts         CLIENT_ID -> config document, validation, fail-loud
 src/lib/navigation.ts            the four tabs, fixed order, config-driven visibility
 src/lib/session.ts               signed-in user + delegated Power BI token
@@ -439,8 +444,11 @@ service principal for Power BI and never asserts an identity on a user's behalf.
 - Report list and workspace ID come from `tenant.json`; never hardcoded. A report
   id arriving in a URL must be matched against that config before it is passed to
   Power BI (`findReport`), so a user cannot request arbitrary reports.
-- **`/dashboards` is a gallery of still-preview tiles, not a live report.**
-  Opening a tile loads the real interactive report at `/dashboards/[reportId]`.
+- **`/dashboards` is a gallery of still-preview cards, not a live report.**
+  Opening a card loads the real interactive report at `/dashboards/[reportId]`.
+  The cards (`gallery/DashboardCard.tsx`) sit in a responsive grid under the
+  shared `GalleryHeader` band; the page has no video columns, unlike the two
+  agent tabs.
   Never embed on the index: N dashboards would mean N Power BI iframes loading
   at once, for reports nobody is reading yet.
 - **Tile previews are supplied, not fetched.** Power BI publishes no public
@@ -579,6 +587,15 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
 - Where the agent returns the SQL or the tables it consulted, surface that as inspectable detail alongside the answer. Users acting on a census or falls number need to see where it came from; an unexplained number in this domain is worse than no number.
 - Conversation state is per-user and per-session, held in browser component state and never persisted. Each `tools/call` is independent, so prior turns are not carried — do not add server-side transcript storage without an explicit decision (see the PHI note under Tab 4, which applies here too).
 - **Agents are added and removed from `/data-agents/manage`**, gated on `ADMIN_EMAILS` and enforced server-side, exactly as dashboards are. The list lives in the client's config document, so a new agent appears without a redeploy.
+- **The gallery is three columns: agents, a demo video, a launch video.** The
+  first column lists every agent, each opening its own conversation; agents can
+  be many. The videos are **one each per page, not per agent**, read from
+  `videos.dataAgents` (Tab 3) and `videos.aiAgents` (Tab 4) in the config
+  document — `{ url, title?, posterUrl? }`, where a direct file (.mp4, .webm)
+  plays natively and any other URL is framed as an embed. Until a video is set
+  its column shows a placeholder frame rather than collapsing, so the page keeps
+  its shape. The video columns stick under the header as a long agent list
+  scrolls. The conversation pages themselves are unchanged.
 
 ### Tab 4 — AI Agents (Foundry / Copilot)
 
@@ -590,7 +607,7 @@ Purpose: surface the client's broader AI agents — the ones built on agent *pla
 - New agent types and display modes should be addable by adding a component and a config entry, without touching the tab's own layout code.
 - Agents not yet ready for full embed can render as a linked card instead of a live embed — this should be a graceful per-agent fallback, not a special-cased hack.
 - **The conversation surface is shared with Tab 3, not rebuilt.** `components/agent-chat/` owns the workspace, the transcript, the composer and the reveal; a tab supplies the transport, the copy, and where the "back" link goes. Nothing in `agent-chat` knows which platform it is talking to. Do not fork it to make a Tab 4 change — parameterise it, as `DataAgentChat` and `FoundryChat` both do.
-- **The tab is a gallery of tiles**, the same shape as Dashboards and Conversational Data Agents, opening each agent at its own URL `/ai-agents/<slug>`. The slug comes from the agent's display name: config gives these agents no id, and an endpoint is the wrong thing to route on. `AgentTile` is shared with Tab 3 and `DashboardTile` matches it — the three galleries must keep reading as one product, so a change to one tile is a change to all three.
+- **The tab uses the same three-column gallery as Tab 3** (`gallery/AgentGallery.tsx`), opening each agent at its own URL `/ai-agents/<slug>`. The slug comes from the agent's display name: config gives these agents no id, and an endpoint is the wrong thing to route on. The three gallery pages share `GalleryHeader`, and the two agent tabs share `AgentGallery` — they must keep reading as one product, so a change to one is a change to all of them.
 - **There is no explanatory preamble on this page**, by decision. The agent's own context panel says what it is and what to ask it, at the point that is useful. The prose header, the platform/display badges and the "how these differ from data agents" aside were all removed — do not reintroduce them.
 
 **Foundry: this call runs as the application, not as the user.** Read this before

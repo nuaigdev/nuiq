@@ -81,6 +81,23 @@ const agentSchema = z.object({
   appUrl: z.string().optional(),
 });
 
+/**
+ * A video shown beside an agent gallery. A direct file (.mp4, .webm) plays in
+ * a native player; anything else is treated as an embed URL (YouTube, Vimeo,
+ * Stream) and framed. Absent, the page draws a placeholder where it will go.
+ */
+const galleryVideoSchema = z.object({
+  url: z.string().url(),
+  title: z.string().min(1).optional(),
+  posterUrl: z.string().url().optional(),
+});
+
+/** One demo and one launch video per agent tab — per page, not per agent. */
+const galleryVideosSchema = z.object({
+  demo: galleryVideoSchema.optional(),
+  launch: galleryVideoSchema.optional(),
+});
+
 const tenantConfigSchema = z.object({
   clientId: z.string().min(1),
   displayName: z.string().min(1),
@@ -94,6 +111,12 @@ const tenantConfigSchema = z.object({
   }),
   fabricDataAgents: z.array(fabricDataAgentSchema).default([]),
   agents: z.array(agentSchema).default([]),
+  videos: z
+    .object({
+      dataAgents: galleryVideosSchema.default({}),
+      aiAgents: galleryVideosSchema.default({}),
+    })
+    .default({ dataAgents: {}, aiAgents: {} }),
   orgHierarchy: z.object({
     levels: z.array(z.string().min(1)).min(1),
   }),
@@ -107,6 +130,7 @@ export type TenantConfig = z.infer<typeof tenantConfigSchema>;
 export type PowerBiReport = z.infer<typeof powerBiReportSchema>;
 export type FabricDataAgent = z.infer<typeof fabricDataAgentSchema>;
 export type PlatformAgent = z.infer<typeof agentSchema>;
+export type GalleryVideo = z.infer<typeof galleryVideoSchema>;
 export type AgentType = (typeof AGENT_TYPES)[number];
 export type AgentDisplayMode = (typeof DISPLAY_MODES)[number];
 
