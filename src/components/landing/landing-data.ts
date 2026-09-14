@@ -214,8 +214,9 @@ export const SOURCE_GROUP_HEAD = GROUP_HEAD;
 
 export const INGEST_GATE = { x: 434, y: AXIS_Y, r: 36 };
 
-const STAGE_TOP = 226;
-const STAGE_ROW_H = 88;
+/* Row height leaves clear space under stage 5 for the maturity-path pill. */
+const STAGE_TOP = 224;
+const STAGE_ROW_H = 84;
 
 export const STAGES: PlatformStage[] = (
   [

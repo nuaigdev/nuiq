@@ -197,7 +197,7 @@ export function LandingDiagram() {
 
   const navigate = (href: string) => router.push(href);
 
-  const affordance = { w: 244, h: 30, y: PLATFORM.y + PLATFORM.h - 42 };
+  const affordance = { w: 244, h: 30, y: PLATFORM.y + PLATFORM.h - 44 };
 
   return (
     <svg
