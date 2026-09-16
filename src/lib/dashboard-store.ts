@@ -36,8 +36,11 @@ export const dashboardInputSchema = z.object({
     .optional()
     .transform((value) => (value ? value : undefined))
     .refine(
-      (value) => value === undefined || z.string().url().safeParse(value).success,
-      "Preview image must be a URL.",
+      (value) =>
+        value === undefined ||
+        value.startsWith("/") ||
+        z.string().url().safeParse(value).success,
+      "Preview image must be a URL, or a path beginning with /.",
     ),
 });
 

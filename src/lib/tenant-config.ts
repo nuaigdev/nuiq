@@ -22,8 +22,19 @@ const powerBiReportSchema = z.object({
    * Optional still image shown on the dashboard tile. Power BI has no public
    * report-thumbnail API, so this is supplied rather than fetched. Omit it and
    * the tile falls back to a generated placeholder.
+   *
+   * Either an absolute URL, or an app-relative path — which is what an image
+   * held in the client's own private store looks like, since it is streamed
+   * through /api/dashboard-thumbnails rather than served from a public URL.
    */
-  thumbnailUrl: z.string().url().optional(),
+  thumbnailUrl: z
+    .string()
+    .refine(
+      (value) =>
+        value.startsWith("/") || z.string().url().safeParse(value).success,
+      "must be an absolute URL or a path beginning with /",
+    )
+    .optional(),
   /**
    * Workspace this report lives in. Optional — falls back to
    * powerBi.workspaceId. Set it when a client's reports are spread across

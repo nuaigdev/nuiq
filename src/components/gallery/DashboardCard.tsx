@@ -4,22 +4,18 @@ import Link from "next/link";
 import type { Dashboard } from "@/lib/dashboard-store";
 
 /**
- * A dashboard in the gallery: the report itself, shown small and inert.
+ * A dashboard in the gallery: a still image, never a live embed.
  *
- * Opening the card loads the real, interactive report at
- * /dashboards/[reportId]; the tile is only a look at what is inside.
+ * Embedding the real report here was tried and removed — it could not be made
+ * quick, because every tile had to resolve an embed URL and then render a whole
+ * report before showing anything. The image is supplied per dashboard instead
+ * (`thumbnailUrl`), usually a screenshot held in the client's own store and
+ * streamed through /api/dashboard-thumbnails. Opening the card still loads the
+ * real, interactive report at /dashboards/[reportId].
  *
- * The preview sits in a mat — a report seen on a screen rather than a picture
- * pasted onto a card. It is the real report, embedded small and inert once the
- * tile is on screen (see DashboardPreview), because Power BI publishes no
- * thumbnail API and a supplied still is one more thing to keep up to date.
- *
- * Underneath it, and whenever there is no preview to show — no Power BI token,
- * a report the user cannot open, one still loading — the tile draws
- * `thumbnailUrl` if the dashboard has one and otherwise a deterministic facet
- * field. That fallback is deliberately abstract: a fake mini chart would be the
- * dashboard-template cliché CLAUDE.md §8 rules out, and would imply data that
- * is not there.
+ * Without an image the tile draws a deterministic facet field. That fallback is
+ * deliberately abstract: a fake mini chart would be the dashboard-template
+ * cliché CLAUDE.md §8 rules out, and would imply data that is not there.
  */
 
 function hashOf(value: string): number {
@@ -56,41 +52,27 @@ function FacetPreview({ seed }: { seed: string }) {
   );
 }
 
-export function DashboardCard({
-  dashboard,
-  preview,
-}: {
-  dashboard: Dashboard;
-  /**
-   * The live preview, streamed in by the page once its embed URL resolves.
-   * The card renders immediately without waiting for it.
-   */
-  preview?: React.ReactNode;
-}) {
+export function DashboardCard({ dashboard }: { dashboard: Dashboard }) {
   return (
     <Link
       href={`/dashboards/${dashboard.id}`}
       className="group card flex h-full flex-col rounded-2xl p-2.5 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-peak-200 hover:shadow-[0_18px_40px_-22px_rgba(29,58,158,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500"
     >
-      <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-canvas-line bg-canvas-ground">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-canvas-line bg-white">
         <div className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.03]">
           {dashboard.thumbnailUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element -- operator-supplied URL, dimensions unknown */
             <img
               src={dashboard.thumbnailUrl}
               alt=""
-              className="h-full w-full object-cover object-top"
+              /* contain, not cover: a report screenshot is the whole picture,
+                 and cropping it cuts the filter rail off the side. */
+              className="h-full w-full object-contain"
             />
           ) : (
             <FacetPreview seed={dashboard.id} />
           )}
         </div>
-
-        {/* The real report, over the fallback, once the tile is on screen.
-            Inert: pointer events stay with the card, which is the link. */}
-        {preview ? (
-          <div className="pointer-events-none absolute inset-0">{preview}</div>
-        ) : null}
 
         {/* A wash and an "open" mark on hover, so the whole frame reads as the
             way in rather than only the title beneath it. */}
@@ -101,13 +83,6 @@ export function DashboardCard({
           </span>
         </div>
 
-        {/* "Live", not "Preview": this is the report itself, not a picture of
-            it. The word only appears once a report is actually on the tile. */}
-        {preview ? (
-          <span className="absolute left-2.5 top-2.5 rounded-md bg-peak-950/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-peak-100">
-            Live
-          </span>
-        ) : null}
       </div>
 
       <div className="flex flex-1 items-start gap-3 px-2.5 pb-2 pt-4">

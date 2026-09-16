@@ -1,32 +1,27 @@
 import { Settings2 } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { DashboardCard } from "@/components/gallery/DashboardCard";
-import { DashboardPreview } from "@/components/gallery/DashboardPreview";
 import { EmptyGallery } from "@/components/gallery/EmptyGallery";
 import { GalleryHeader, HEADER_ACTION_CLASS } from "@/components/gallery/GalleryHeader";
-import { getDashboards, type Dashboard } from "@/lib/dashboard-store";
-import { getPreviewEmbedUrl } from "@/lib/powerbi";
-import { getSession } from "@/lib/session";
+import { getDashboards } from "@/lib/dashboard-store";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 export const metadata = { title: "Power BI Dashboards" };
 
 /**
- * The dashboard index. Each card shows the real report, small and inert, and
- * opening one loads it properly at /dashboards/[reportId] (CLAUDE.md §5 Tab 2).
+ * The dashboard index: a still image per dashboard, never a live embed.
  *
- * Nothing about a preview blocks the page. Each resolves its embed URL inside
- * its own Suspense boundary and streams in when ready, so the gallery paints as
- * soon as the config is read — a slow or unreachable report costs that one
- * tile, not the page.
+ * Embedding the real report on every tile was tried and removed. It was slow by
+ * construction — each tile had to resolve an embed URL and then render a whole
+ * report in an iframe before it showed anything — and none of that work is
+ * worth it for a picture somebody looks at for a second before clicking
+ * through. The image is supplied per dashboard instead (`thumbnailUrl`), and
+ * opening a card still loads the real, interactive report.
  */
 export default async function DashboardsPage() {
   const config = await getTenantConfig();
   const dashboards = getDashboards(config);
-  const session = await getSession();
-  const token = session.powerBiToken;
 
   return (
     <>
@@ -57,49 +52,11 @@ export default async function DashboardsPage() {
         <ul className="mx-auto grid max-w-[1600px] gap-6 px-6 py-8 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {dashboards.map((dashboard) => (
             <li key={dashboard.id}>
-              <DashboardCard
-                dashboard={dashboard}
-                preview={
-                  token ? (
-                    <Suspense fallback={null}>
-                      <LivePreview dashboard={dashboard} token={token} />
-                    </Suspense>
-                  ) : null
-                }
-              />
+              <DashboardCard dashboard={dashboard} />
             </li>
           ))}
         </ul>
       )}
     </>
-  );
-}
-
-/**
- * One tile's preview, resolved as the signed-in user. A report they cannot open
- * returns nothing and the tile keeps its artwork, rather than embedding a frame
- * that can only render an error.
- */
-async function LivePreview({
-  dashboard,
-  token,
-}: {
-  dashboard: Dashboard;
-  token: string;
-}) {
-  const embedUrl = await getPreviewEmbedUrl(
-    dashboard.workspaceId,
-    dashboard.id,
-    token,
-  );
-  if (!embedUrl) return null;
-
-  return (
-    <DashboardPreview
-      reportId={dashboard.id}
-      embedUrl={embedUrl}
-      accessToken={token}
-      pageName={dashboard.pageName}
-    />
   );
 }
