@@ -35,6 +35,10 @@ const CENTER_X = P.x + P.w / 2;
 /** One lit level at a time, reusing the platform's sweep keyframes. */
 const SWEEP_DELAY = (i: number) => `${(i * STACK_CYCLE_S) / MATURITY_LEVELS.length}s`;
 
+/** The maturity meter's own colours (see Meter). */
+export const METER_ON = "#f5b83d";
+export const METER_OFF = "rgba(245,184,61,0.22)";
+
 const fade = (delay: number) => ({
   initial: { opacity: 0 },
   animate: { opacity: 1 },
@@ -42,10 +46,17 @@ const fade = (delay: number) => ({
   transition: { duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] as const },
 });
 
-/** Level n of 4, as equal segments — a level indicator, not a chart. */
+/**
+ * Level n of 4, as equal segments — a level indicator, not a chart.
+ *
+ * Amber rather than the peak family, by explicit decision: in indigo on indigo
+ * the segments read as a row of faint dashes, and this is the one mark on the
+ * panel that says how far up the path a level sits. It is deliberately the only
+ * warm colour in the product.
+ */
 function Meter({ level, size = "md" }: { level: number; size?: "sm" | "md" }) {
-  const w = size === "sm" ? 9 : 16;
-  const h = size === "sm" ? 3 : 4;
+  const w = size === "sm" ? 12 : 22;
+  const h = size === "sm" ? 5 : 8;
   return (
     <span
       className="inline-flex items-center gap-[3px]"
@@ -58,7 +69,7 @@ function Meter({ level, size = "md" }: { level: number; size?: "sm" | "md" }) {
           style={{
             width: w,
             height: h,
-            background: n <= level ? "#c2d7fc" : "rgba(147,184,249,0.22)",
+            background: n <= level ? METER_ON : METER_OFF,
           }}
         />
       ))}

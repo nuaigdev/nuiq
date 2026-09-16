@@ -27,7 +27,7 @@ import {
   curve,
 } from "./landing-data";
 import { GlyphPaths, Icon, SourceMark } from "./LandingGlyphs";
-import { MaturityPanel } from "./MaturityPanel";
+import { MaturityPanel, METER_OFF, METER_ON } from "./MaturityPanel";
 
 /**
  * The landing diagram: every source system an operator runs, the Fabric
@@ -108,21 +108,19 @@ function Packet({
   );
 }
 
-/** Level n of 4, in miniature — the destination cards' place on the path. */
+/**
+ * Level n of 4, in miniature — the destination cards' place on the path.
+ * Amber, like the meter in the expanded panel, so the two read as one mark.
+ */
 function MiniMeter({ level, bright }: { level: number; bright: boolean }) {
   return (
     <span className="inline-flex items-center gap-[2px]" aria-hidden>
       {[1, 2, 3, 4].map((n) => (
         <span
           key={n}
-          className="h-[3px] w-[9px] rounded-full"
+          className="h-[5px] w-[12px] rounded-full"
           style={{
-            background:
-              n <= level
-                ? bright
-                  ? "#ffffff"
-                  : "#93b8f9"
-                : "rgba(147,184,249,0.22)",
+            background: n <= level ? (bright ? "#ffd27a" : METER_ON) : METER_OFF,
           }}
         />
       ))}
