@@ -22,23 +22,13 @@ import {
  * platform rect literally growing — not a modal laid over the page — and every
  * size in it scales with the diagram at any viewport.
  *
- * EXPERIMENT: three treatments of the same content, switchable from the panel
- * header, so one can be chosen on the real page. Once one is picked the other
- * two and the switcher are deleted; nothing else depends on them.
+ * The shape is a ziggurat: a wide foundation slab carrying the five platform
+ * stages, with each level built narrower on top of it. Two other treatments
+ * were built alongside this one and deleted once this was chosen.
  */
 
-export const MATURITY_VARIANTS = [
-  { id: "staircase", label: "A · Staircase" },
-  { id: "stack", label: "B · Stack" },
-  { id: "bars", label: "C · Bars" },
-] as const;
-
-export type MaturityVariant = (typeof MATURITY_VARIANTS)[number]["id"];
-
-/* The content area below the header, shared by every variant. */
-const LEFT = P.x + 40;
+/* The content area below the header. */
 const RIGHT = P.x + P.w - 40;
-const WIDTH = RIGHT - LEFT;
 const BOTTOM = P.y + P.h - 32;
 const CENTER_X = P.x + P.w / 2;
 
@@ -135,111 +125,6 @@ function LevelLink({
 }
 
 /* ------------------------------------------------------------------------ */
-/* A · Staircase — four columns rising left to right from one baseline.      */
-/* ------------------------------------------------------------------------ */
-
-function Staircase({
-  reduced,
-  onNavigate,
-}: {
-  reduced: boolean;
-  onNavigate: (href: string) => void;
-}) {
-  const gap = 16;
-  const firstW = 320;
-  const restW = (WIDTH - firstW - gap * 3) / 3;
-  const heights = [220, 306, 392, 478];
-
-  const bars = MATURITY_LEVELS.map((level, i) => {
-    const x = LEFT + (i === 0 ? 0 : firstW + gap + (i - 1) * (restW + gap));
-    const w = i === 0 ? firstW : restW;
-    const h = heights[i];
-    return { level, x, w, h, y: BOTTOM - h };
-  });
-
-  return (
-    <g>
-      {bars.map(({ level, x, w, h, y }, i) => (
-        <LevelLink key={level.stage} level={level} onNavigate={onNavigate}>
-          <motion.rect
-            x={x}
-            width={w}
-            rx={14}
-            initial={{ y: BOTTOM, height: 0 }}
-            animate={{ y, height: h }}
-            transition={{ duration: 0.7, delay: 0.25 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
-            fill={`rgba(59,116,240,${0.1 + i * 0.07})`}
-            stroke={`rgba(194,215,252,${0.28 + i * 0.14})`}
-            strokeWidth={1.25}
-            className="transition-[fill] duration-200 group-hover/level:fill-[rgba(102,153,246,0.42)]"
-          />
-          {!reduced ? (
-            <rect
-              x={x}
-              y={y}
-              width={w}
-              height={h}
-              rx={14}
-              fill="rgba(102,153,246,0.16)"
-              stroke="#ffffff"
-              strokeOpacity={0.6}
-              strokeWidth={1.25}
-              className="landing-stage-active"
-              style={{ animationDelay: SWEEP_DELAY(i) }}
-            />
-          ) : null}
-          <motion.g {...fade(0.55 + i * 0.12)}>
-            <BoxContent x={x} y={y} w={w} h={h} align="left" justify="start" className="p-5">
-              <Eyebrow level={level} />
-              <span className="mt-3 flex items-center gap-2.5">
-                <LogoTile src={level.logo} />
-                <span className="text-[16.5px] font-semibold leading-tight tracking-tight text-white">
-                  {level.name}
-                </span>
-              </span>
-              <span className="mt-3 text-[15px] font-medium leading-snug text-peak-100">
-                “{level.question}”
-              </span>
-              {level.level === 1 ? (
-                <span className="mt-3 flex flex-wrap gap-1.5">
-                  {STAGES.map((stage) => (
-                    <span
-                      key={stage.id}
-                      className="flex items-center gap-1 rounded-full border border-peak-300/25 bg-white/5 px-2 py-[3px] text-[10.5px] leading-none text-peak-100"
-                    >
-                      <Icon glyph={stage.glyph} size={11} className="text-peak-300" />
-                      {stage.title}
-                    </span>
-                  ))}
-                </span>
-              ) : (
-                <ul className="mt-3 space-y-1.5 text-[12px] leading-snug text-peak-200/85">
-                  {level.outcomes.map((outcome) => (
-                    <li key={outcome} className="flex gap-2">
-                      <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-peak-300" />
-                      {outcome}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <span className="mt-auto flex w-full items-center justify-between pt-3">
-                <span className="flex items-center gap-2">
-                  <Meter level={level.level} />
-                  <span className="text-[11px] text-peak-300">{level.mode}</span>
-                </span>
-                {level.href ? (
-                  <span className="text-[12.5px] font-medium text-peak-200">Open →</span>
-                ) : null}
-              </span>
-            </BoxContent>
-          </motion.g>
-        </LevelLink>
-      ))}
-    </g>
-  );
-}
-
-/* ------------------------------------------------------------------------ */
 /* B · Stack — a foundation slab with each level built narrower on top.      */
 /* ------------------------------------------------------------------------ */
 
@@ -251,11 +136,13 @@ function Stack({
   onNavigate: (href: string) => void;
 }) {
   const gap = 12;
+  /* Each level is narrower than the one below it, but never so narrow that its
+     name and its question crowd each other — level 4 asks the longest one. */
   const sizes = [
-    { w: 1080, h: 150 },
-    { w: 840, h: 104 },
-    { w: 620, h: 104 },
-    { w: 420, h: 104 },
+    { w: 1104, h: 150 },
+    { w: 936, h: 104 },
+    { w: 800, h: 104 },
+    { w: 664, h: 104 },
   ];
 
   const slabs = MATURITY_LEVELS.map((level, i) => {
@@ -388,7 +275,7 @@ function Stack({
                 y={y}
                 w={w}
                 h={h}
-                className="flex-row! justify-between! gap-4 px-5"
+                className="flex-row! justify-between! gap-8 px-5"
               >
                 <span className="flex min-w-0 items-center gap-3 text-left">
                   <LogoTile src={level.logo} size={36} />
@@ -450,176 +337,13 @@ function Stack({
 }
 
 /* ------------------------------------------------------------------------ */
-/* C · Bars — one segmented bar per level, each filled one step further.     */
-/* ------------------------------------------------------------------------ */
-
-function Bars({
-  reduced,
-  onNavigate,
-}: {
-  reduced: boolean;
-  onNavigate: (href: string) => void;
-}) {
-  const labelW = 300;
-  const trackX = LEFT + labelW + 24;
-  const trackW = 660;
-  const segGap = 8;
-  const segW = (trackW - segGap * 3) / 4;
-  const trackH = 50;
-  const rowH = 104;
-  const rowGap = 14;
-  const endX = trackX + trackW + 24;
-
-  const rows = MATURITY_LEVELS.map((level, i) => ({
-    level,
-    cy: BOTTOM - rowH / 2 - i * (rowH + rowGap),
-  }));
-  const headerY = rows[3].cy - rowH / 2 - 14;
-
-  return (
-    <g>
-      {/* The four columns the bars fill through. */}
-      <motion.g {...fade(0.2)}>
-        {MATURITY_LEVELS.map((level, s) => (
-          <text
-            key={level.value}
-            x={trackX + s * (segW + segGap) + segW / 2}
-            y={headerY}
-            textAnchor="middle"
-            className="fill-peak-300 text-[11px] font-semibold uppercase"
-            letterSpacing="0.16em"
-          >
-            {level.value}
-          </text>
-        ))}
-      </motion.g>
-
-      {rows.map(({ level, cy }, i) => {
-        const n = level.level;
-        const top = cy - trackH / 2;
-        return (
-          <LevelLink key={level.stage} level={level} onNavigate={onNavigate}>
-            {/* Hit area and hover wash for the whole row. */}
-            <rect
-              x={LEFT - 14}
-              y={cy - rowH / 2}
-              width={WIDTH + 28}
-              height={rowH}
-              rx={14}
-              fill="rgba(255,255,255,0)"
-              className="transition-[fill] duration-200 group-hover/level:fill-[rgba(255,255,255,0.06)]"
-            />
-
-            <motion.g {...fade(0.3 + i * 0.1)}>
-              <BoxContent
-                x={LEFT}
-                y={cy - rowH / 2}
-                w={labelW}
-                h={rowH}
-                align="left"
-              >
-                <Eyebrow level={level} />
-                <span className="mt-2 flex items-center gap-2.5">
-                  <LogoTile src={level.logo} />
-                  <span className="text-[16.5px] font-semibold leading-tight text-white">
-                    {level.name}
-                  </span>
-                </span>
-                <span className="mt-2 line-clamp-1 text-[11.5px] text-peak-200/80">
-                  {level.outcomes.join(" · ")}
-                </span>
-              </BoxContent>
-            </motion.g>
-
-            {[0, 1, 2, 3].map((s) => {
-              const sx = trackX + s * (segW + segGap);
-              const filled = s < n;
-              return filled ? (
-                <motion.rect
-                  key={s}
-                  x={sx}
-                  y={top}
-                  height={trackH}
-                  rx={9}
-                  initial={{ width: 0 }}
-                  animate={{ width: segW }}
-                  transition={{
-                    duration: 0.4,
-                    delay: 0.35 + i * 0.12 + s * 0.09,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  fill={`rgba(59,116,240,${0.16 + s * 0.1 + (s === n - 1 ? 0.12 : 0)})`}
-                  stroke={s === n - 1 ? "rgba(255,255,255,0.75)" : "rgba(194,215,252,0.35)"}
-                  strokeWidth={s === n - 1 ? 1.5 : 1}
-                />
-              ) : (
-                <rect
-                  key={s}
-                  x={sx}
-                  y={top}
-                  width={segW}
-                  height={trackH}
-                  rx={9}
-                  fill="rgba(255,255,255,0.025)"
-                  stroke="rgba(147,184,249,0.2)"
-                  strokeDasharray="4 5"
-                />
-              );
-            })}
-
-            {!reduced ? (
-              <rect
-                x={trackX + (n - 1) * (segW + segGap)}
-                y={top}
-                width={segW}
-                height={trackH}
-                rx={9}
-                fill="rgba(194,215,252,0.18)"
-                className="landing-stage-active"
-                style={{ animationDelay: SWEEP_DELAY(i) }}
-              />
-            ) : null}
-
-            <motion.g {...fade(0.6 + i * 0.12)}>
-              <BoxContent
-                x={trackX + (n - 1) * (segW + segGap)}
-                y={top}
-                w={segW}
-                h={trackH}
-                className="px-2"
-              >
-                <span className="text-[12.5px] font-semibold leading-tight text-white">
-                  {level.question}
-                </span>
-              </BoxContent>
-              <BoxContent x={endX} y={cy - rowH / 2} w={RIGHT - endX} h={rowH} align="left">
-                <span className="text-[11px] uppercase tracking-[0.12em] text-peak-300">
-                  {level.mode}
-                </span>
-                <span className="mt-1.5 text-[13px] font-medium text-peak-100">
-                  {level.href ? "Open →" : "Beneath every level"}
-                </span>
-              </BoxContent>
-            </motion.g>
-          </LevelLink>
-        );
-      })}
-    </g>
-  );
-}
-
-/* ------------------------------------------------------------------------ */
 
 export function MaturityPanel({
-  variant,
-  onVariant,
   onClose,
   onNavigate,
   reduced,
   closeRef,
 }: {
-  variant: MaturityVariant;
-  onVariant: (variant: MaturityVariant) => void;
   onClose: () => void;
   onNavigate: (href: string) => void;
   reduced: boolean;
@@ -666,28 +390,6 @@ export function MaturityPanel({
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-3">
-            <span
-              role="radiogroup"
-              aria-label="Preview variant"
-              className="flex rounded-full border border-peak-300/30 bg-white/5 p-[3px]"
-            >
-              {MATURITY_VARIANTS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={variant === option.id}
-                  onClick={() => onVariant(option.id)}
-                  className={`rounded-full px-3 py-1.5 text-[11.5px] font-medium leading-none transition-colors ${
-                    variant === option.id
-                      ? "bg-white text-peak-900"
-                      : "text-peak-200 hover:text-white"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </span>
             <button
               ref={closeRef}
               type="button"
@@ -701,16 +403,7 @@ export function MaturityPanel({
         </BoxContent>
       </motion.g>
 
-      {/* Keyed, so switching variant replays that variant's entrance. */}
-      <g key={variant}>
-        {variant === "staircase" ? (
-          <Staircase reduced={reduced} onNavigate={onNavigate} />
-        ) : variant === "stack" ? (
-          <Stack reduced={reduced} onNavigate={onNavigate} />
-        ) : (
-          <Bars reduced={reduced} onNavigate={onNavigate} />
-        )}
-      </g>
+      <Stack reduced={reduced} onNavigate={onNavigate} />
     </g>
   );
 }

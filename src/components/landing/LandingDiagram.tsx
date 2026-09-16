@@ -27,7 +27,7 @@ import {
   curve,
 } from "./landing-data";
 import { GlyphPaths, Icon, SourceMark } from "./LandingGlyphs";
-import { MaturityPanel, type MaturityVariant } from "./MaturityPanel";
+import { MaturityPanel } from "./MaturityPanel";
 
 /**
  * The landing diagram: every source system an operator runs, the Fabric
@@ -137,7 +137,6 @@ export function LandingDiagram() {
   const [hoveredDest, setHoveredDest] = useState<string | null>(null);
   const [platformHover, setPlatformHover] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [variant, setVariant] = useState<MaturityVariant>("staircase");
 
   const platformRef = useRef<SVGGElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -732,8 +731,6 @@ export function LandingDiagram() {
               onClick={() => setExpanded(false)}
             />
             <MaturityPanel
-              variant={variant}
-              onVariant={setVariant}
               onClose={() => setExpanded(false)}
               onNavigate={navigate}
               reduced={reduced}
