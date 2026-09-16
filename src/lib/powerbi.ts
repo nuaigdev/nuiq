@@ -94,6 +94,22 @@ export async function getReportEmbedUrl(
 }
 
 /**
+ * Preview embed URLs, remembered for a few minutes.
+ *
+ * A report's embed URL is a property of the report, not of the person asking,
+ * and it changes about never — so the lookup is worth caching for everyone on
+ * this instance. A miss costs a round trip on the first gallery someone opens;
+ * a hit costs nothing, which is what makes the tiles appear immediately when
+ * the warm-up (see /api/dashboard-previews) has already run on another page.
+ *
+ * A failure is cached only briefly, so a report that was momentarily
+ * unreachable is retried soon rather than staying blank for ten minutes.
+ */
+const previewUrls = new Map<string, { url: string | null; expires: number }>();
+const PREVIEW_TTL_MS = 10 * 60 * 1000;
+const PREVIEW_MISS_TTL_MS = 30 * 1000;
+
+/**
  * The embed URL only, for a tile preview.
  *
  * Deliberately skips the dataset probe `getReportEmbedUrl` does: that is a
@@ -107,6 +123,11 @@ export async function getPreviewEmbedUrl(
   reportId: string,
   powerBiToken: string,
 ): Promise<string | null> {
+  const key = `${workspaceId}/${reportId}`;
+  const cached = previewUrls.get(key);
+  if (cached && cached.expires > Date.now()) return cached.url;
+
+  let url: string | null = null;
   try {
     const response = await fetch(
       `${POWERBI_API}/groups/${workspaceId}/reports/${reportId}`,
@@ -115,12 +136,19 @@ export async function getPreviewEmbedUrl(
         cache: "no-store",
       },
     );
-    if (!response.ok) return null;
-    const body = (await response.json()) as { embedUrl?: string };
-    return body.embedUrl ?? null;
+    if (response.ok) {
+      const body = (await response.json()) as { embedUrl?: string };
+      url = body.embedUrl ?? null;
+    }
   } catch {
-    return null;
+    url = null;
   }
+
+  previewUrls.set(key, {
+    url,
+    expires: Date.now() + (url ? PREVIEW_TTL_MS : PREVIEW_MISS_TTL_MS),
+  });
+  return url;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { AuthControls } from "@/components/AuthControls";
 import { Footer } from "@/components/Footer";
+import { PreviewWarmup } from "@/components/gallery/PreviewWarmup";
 import { TopNav } from "@/components/TopNav";
 import { getDefaultRoute, getNavItems } from "@/lib/navigation";
 import { getTenantConfig } from "@/lib/tenant-config";
@@ -25,6 +26,13 @@ export default async function ShellLayout({
 
   return (
     <>
+      {/* Power BI is a third party the dashboard tiles have to reach; opening
+          the connection here means the first tile is not also paying for the
+          DNS and TLS handshake. */}
+      <link rel="preconnect" href="https://app.powerbi.com" />
+      <link rel="dns-prefetch" href="https://app.powerbi.com" />
+      <PreviewWarmup />
+
       <TopNav
         items={getNavItems(config)}
         defaultRoute={getDefaultRoute()}
