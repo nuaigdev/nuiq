@@ -139,6 +139,15 @@ export function AgentCard({ agent }: { agent: GalleryAgent }) {
                 >
                   <X aria-hidden className="h-4 w-4" />
                 </button>
+                {/* The way in, without reading first: the same action as the
+                    one in the footer, in reach before anything is scrolled. */}
+                <Link
+                  href={agent.href}
+                  className="absolute bottom-4 right-5 inline-flex items-center gap-1.5 rounded-lg bg-surface px-3.5 py-2 text-[13.5px] font-semibold text-peak-700 shadow-[0_2px_10px_rgba(7,13,38,0.35)] transition-colors hover:bg-peak-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  {agent.cta}
+                  <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+                </Link>
               </div>
 
               <div className="px-6 pb-6 pt-5">
