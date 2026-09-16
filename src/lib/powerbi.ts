@@ -94,6 +94,36 @@ export async function getReportEmbedUrl(
 }
 
 /**
+ * The embed URL only, for a tile preview.
+ *
+ * Deliberately skips the dataset probe `getReportEmbedUrl` does: that is a
+ * second round trip per report, and on a gallery of N tiles it is the slowest
+ * thing on the page. A preview of a report whose dataset the user cannot read
+ * comes out empty, which is a small cost on a thumbnail — opening the report
+ * still gives them the real, specific message.
+ */
+export async function getPreviewEmbedUrl(
+  workspaceId: string,
+  reportId: string,
+  powerBiToken: string,
+): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `${POWERBI_API}/groups/${workspaceId}/reports/${reportId}`,
+      {
+        headers: { Authorization: `Bearer ${powerBiToken}` },
+        cache: "no-store",
+      },
+    );
+    if (!response.ok) return null;
+    const body = (await response.json()) as { embedUrl?: string };
+    return body.embedUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Whether the signed-in user can read a dataset.
  *
  * "unknown" on anything other than a clear allow/deny: a probe that cannot

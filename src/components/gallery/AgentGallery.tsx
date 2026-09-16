@@ -1,10 +1,10 @@
-import { ArrowRight, Clapperboard, Rocket } from "lucide-react";
-import Link from "next/link";
+import { Clapperboard, Rocket } from "lucide-react";
 
-import { AgentGlyph } from "@/components/agent-chat/AgentGlyph";
 import type { GalleryVideo } from "@/lib/tenant-config";
 
-import { artFor, GalleryArt, type ArtScene } from "./GalleryArt";
+import { AgentCard, type GalleryAgent } from "./AgentCard";
+import { GalleryArt, type ArtScene } from "./GalleryArt";
+import { CARD, CHIP, FRAME } from "./gallery-styles";
 
 /**
  * The body of both agent tabs (§5 Tabs 3 and 4): three columns of one card.
@@ -13,25 +13,16 @@ import { artFor, GalleryArt, type ArtScene } from "./GalleryArt";
  *   2. one demo video for the page;
  *   3. one launch video for the page.
  *
- * Agents can be many; the videos are one each per page, not per agent. An agent
- * card and a video card are deliberately the same object — same width, same
- * 16:9 picture, same body — so the row reads as three of a kind rather than a
- * list beside two players.
+ * Agents can be many; the videos are one each per page, not per agent. Every
+ * card is the same object (see gallery-styles), and each is only as tall as its
+ * own content — adding a third agent must not stretch the video cards.
  *
  * Videos come from the client's config (`videos.dataAgents` / `videos.aiAgents`).
- * Until one is set, its card keeps the picture and says the video is coming,
+ * Until one is set, its card keeps its picture and says the video is coming,
  * rather than collapsing and leaving the row lopsided.
  */
 
-export type GalleryAgent = {
-  href: string;
-  name: string;
-  description?: string;
-  /** The platform, where it is worth naming (Tab 4 only). */
-  eyebrow?: string;
-  /** The verb — "Ask" for a conversation, "Open" for an embedded app. */
-  cta: string;
-};
+export type { GalleryAgent };
 
 export type VideoSlot = {
   kind: "demo" | "launch";
@@ -39,15 +30,6 @@ export type VideoSlot = {
   blurb: string;
   video?: GalleryVideo;
 };
-
-const CARD =
-  "card flex h-full flex-col overflow-hidden rounded-2xl p-2.5 transition-[border-color,box-shadow,transform] duration-200";
-
-const FRAME =
-  "relative aspect-video shrink-0 overflow-hidden rounded-xl border border-canvas-line bg-peak-900";
-
-const CHIP =
-  "absolute left-3 top-3 rounded-md bg-peak-950/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-peak-100";
 
 export function AgentGallery({
   agents,
@@ -58,11 +40,6 @@ export function AgentGallery({
   videos: [VideoSlot, VideoSlot];
   listLabel: string;
 }) {
-  /*
-   * items-start, not stretch: with several agents the first column grows, and a
-   * video card stretched to match it would be a tall frame with one line of
-   * text stranded at the bottom.
-   */
   return (
     <div className="mx-auto grid max-w-[1600px] items-start gap-6 px-6 py-8 md:grid-cols-2 lg:grid-cols-3">
       <section aria-label={listLabel} className="flex flex-col gap-6">
@@ -75,49 +52,6 @@ export function AgentGallery({
         <VideoCard key={slot.kind} slot={slot} />
       ))}
     </div>
-  );
-}
-
-function AgentCard({ agent }: { agent: GalleryAgent }) {
-  return (
-    <Link
-      href={agent.href}
-      className={`group ${CARD} hover:-translate-y-0.5 hover:border-peak-200 hover:shadow-[0_18px_40px_-22px_rgba(29,58,158,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-peak-500`}
-    >
-      <div className={FRAME}>
-        <div className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.03]">
-          <GalleryArt scene={artFor(agent.name, agent.description)} />
-        </div>
-        <span className={CHIP}>Agent</span>
-        {/* The same mark that sits beside this agent's answers in the chat. */}
-        <span className="absolute bottom-3 left-3 flex h-10 w-10 items-center justify-center rounded-xl bg-surface shadow-[0_2px_8px_rgba(7,13,38,0.35)]">
-          <AgentGlyph seed={agent.name} className="h-7 w-7" />
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col px-3 pb-3 pt-4">
-        {agent.eyebrow ? (
-          <p className="mb-1.5 text-[11.5px] font-medium text-peak-600">
-            {agent.eyebrow}
-          </p>
-        ) : null}
-        <h3 className="text-[16px] font-semibold leading-snug tracking-[-0.01em] text-ink group-hover:text-peak-700">
-          {agent.name}
-        </h3>
-        {agent.description ? (
-          <p className="mt-1.5 line-clamp-3 text-[13px] leading-[1.6] text-ink-muted">
-            {agent.description}
-          </p>
-        ) : null}
-        <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-[13px] font-medium text-peak-600">
-          {agent.cta}
-          <ArrowRight
-            aria-hidden
-            className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
-          />
-        </span>
-      </div>
-    </Link>
   );
 }
 
@@ -143,7 +77,7 @@ function VideoCard({ slot }: { slot: VideoSlot }) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col px-3 pb-3 pt-4">
+      <div className="flex flex-col px-3 pb-3 pt-4">
         <p className="mb-1.5 inline-flex items-center gap-2 text-[11.5px] font-medium text-peak-600">
           <Icon aria-hidden className="h-4 w-4" />
           {label}
@@ -154,7 +88,7 @@ function VideoCard({ slot }: { slot: VideoSlot }) {
         <p className="mt-1.5 text-[13px] leading-[1.6] text-ink-muted">
           {slot.blurb}
         </p>
-        <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-[12.5px] text-ink-subtle">
+        <span className="inline-flex items-center gap-1.5 pt-4 text-[12.5px] text-ink-subtle">
           <span
             aria-hidden
             className={`h-1.5 w-1.5 rounded-full ${ready ? "bg-peak-500" : "bg-ink-subtle/50"}`}

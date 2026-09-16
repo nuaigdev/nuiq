@@ -94,21 +94,51 @@ export function GalleryArt({
 
 function Scene({ scene }: { scene: ArtScene }) {
   switch (scene) {
-    /* Enquiries: a funnel of prospects narrowing to a move-in. */
+    /*
+     * Enquiries and marketing: channels feeding a funnel, and the move-in at
+     * the end of it. Three inbound bars, because the question this agent is
+     * asked most often is which channel produced what.
+     */
     case "enquiries":
       return (
         <g>
-          <polygon points="0,180 0,120 74,74 150,180" className="fill-peak-850" />
-          <polygon points="60,26 260,26 196,86 124,86" className="fill-peak-500/35" />
-          <polygon points="124,86 196,86 176,120 144,120" className="fill-peak-400/45" />
-          <polygon points="144,120 176,120 168,150 152,150" className="fill-peak-300/60" />
-          <polygon points="196,124 258,96 300,124 300,180 210,180" className="fill-peak-700/50" />
-          <rect x="150" y="150" width="20" height="30" className="fill-peak-200/70" />
+          <polygon points="0,180 0,118 66,80 132,180" className="fill-peak-850" />
+          <polygon points="252,110 300,80 320,100 320,180 244,180" className="fill-peak-800/70" />
+
+          {/* Channels, each a different weight of spend. */}
+          {[
+            { y: 34, w: 54, cls: "fill-peak-400/70" },
+            { y: 52, w: 38, cls: "fill-peak-300/60" },
+            { y: 70, w: 46, cls: "fill-peak-500/70" },
+          ].map((bar) => (
+            <g key={bar.y}>
+              <rect x="34" y={bar.y} width={bar.w} height="10" rx="5" className={bar.cls} />
+              <path
+                d={`M ${34 + bar.w + 6} ${bar.y + 5} H 106`}
+                className="stroke-peak-300/45"
+                strokeWidth="1.5"
+                strokeDasharray="3 4"
+              />
+            </g>
+          ))}
+
+          {/* The funnel. */}
+          <polygon points="106,26 232,26 190,84 148,84" className="fill-peak-500/45 stroke-peak-200/45" strokeWidth="1.25" />
+          <polygon points="148,84 190,84 178,112 160,112" className="fill-peak-400/60" />
+          <rect x="160" y="112" width="18" height="14" className="fill-peak-300/70" />
+
+          {/* Qualified enquiries, dropping through. */}
+          <circle cx="169" cy="136" r="3.5" className="fill-peak-200/80" />
+          <circle cx="169" cy="148" r="2.5" className="fill-peak-200/50" />
+
+          {/* The move-in at the end: a community with a lit unit. */}
+          <polygon points="206,160 246,132 286,160 286,180 206,180" className="fill-peak-700/70" />
+          <rect x="238" y="150" width="14" height="14" className="fill-peak-100/80" />
+          <rect x="220" y="166" width="10" height="14" className="fill-peak-200/35" />
+          <rect x="258" y="166" width="10" height="14" className="fill-peak-200/35" />
+
           <g className="agent-drift-a">
-            <polygon points="36,44 60,32 54,60" className="fill-peak-400/35" />
-          </g>
-          <g className="agent-drift-c">
-            <polygon points="268,44 292,56 270,68" className="fill-peak-300/35" />
+            <polygon points="40,118 62,108 56,134" className="fill-peak-400/30" />
           </g>
         </g>
       );
@@ -217,21 +247,51 @@ function Scene({ scene }: { scene: ArtScene }) {
         </g>
       );
 
-    /* Finance: ledger planes, stacked and squared off. */
+    /*
+     * Finance: the ledger, and the balance that has to come out of it. Invoice
+     * lines on the left, a pair of scales on the right, and a short column of
+     * periods — flat shapes, not a chart with invented numbers.
+     */
     case "finance":
       return (
         <g>
-          <polygon points="0,180 0,112 62,78 126,180" className="fill-peak-850" />
-          <polygon points="226,112 288,78 320,106 320,180 236,180" className="fill-peak-700/45" />
-          {[0, 1, 2].map((i) => (
-            <g key={i} transform={`translate(${104 + i * 10} ${40 + i * 30})`}>
-              <rect width="116" height="26" rx="4" className="fill-peak-600/45" />
-              <rect x="10" y="9" width="46" height="4" rx="2" className="fill-peak-100/70" />
-              <rect x="80" y="9" width="26" height="4" rx="2" className="fill-peak-200/45" />
+          <polygon points="0,180 0,116 56,84 112,180" className="fill-peak-850" />
+          <polygon points="262,120 302,94 320,112 320,180 258,180" className="fill-peak-800/70" />
+
+          {/* Ledger lines, each with a figure squared off to the right. */}
+          {[0, 1, 2, 3].map((i) => (
+            <g key={i} transform={`translate(38 ${36 + i * 26})`}>
+              <rect width="122" height="18" rx="4" className="fill-peak-700/55" />
+              <rect x="8" y="7" width={52 - i * 8} height="4" rx="2" className="fill-peak-100/60" />
+              <rect x="86" y="7" width="28" height="4" rx="2" className="fill-peak-200/70" />
             </g>
           ))}
+
+          {/* Periods closing, one taller than the last. */}
+          {[0, 1, 2].map((i) => (
+            <rect
+              key={i}
+              x={38 + i * 20}
+              y={148 - i * 10}
+              width="13"
+              height={22 + i * 10}
+              rx="3"
+              className={["fill-peak-600/60", "fill-peak-500/60", "fill-peak-400/65"][i]}
+            />
+          ))}
+
+          {/* The scales: what is owed against what is collected. */}
+          <g transform="translate(232 40)">
+            <rect x="-2" y="10" width="4" height="86" rx="2" className="fill-peak-200/70" />
+            <rect x="-26" y="92" width="52" height="6" rx="3" className="fill-peak-200/70" />
+            <path d="M-44 14 H44" className="stroke-peak-200/80" strokeWidth="3.5" strokeLinecap="round" />
+            <circle cx="0" cy="6" r="5" className="fill-peak-100" />
+            <path d="M-44 14 L-56 40 H-32 Z" className="fill-peak-400/70" />
+            <path d="M44 14 L32 40 H56 Z" className="fill-peak-300/70" />
+          </g>
+
           <g className="agent-drift-b">
-            <polygon points="46,40 70,30 64,58" className="fill-peak-400/30" />
+            <polygon points="286,36 308,46 288,58" className="fill-peak-300/35" />
           </g>
         </g>
       );

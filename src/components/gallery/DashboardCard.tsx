@@ -3,8 +3,6 @@ import Link from "next/link";
 
 import type { Dashboard } from "@/lib/dashboard-store";
 
-import { DashboardPreview } from "./DashboardPreview";
-
 /**
  * A dashboard in the gallery: the report itself, shown small and inert.
  *
@@ -63,8 +61,11 @@ export function DashboardCard({
   preview,
 }: {
   dashboard: Dashboard;
-  /** Embed details for the live preview, when this user can open the report. */
-  preview?: { embedUrl: string; accessToken: string };
+  /**
+   * The live preview, streamed in by the page once its embed URL resolves.
+   * The card renders immediately without waiting for it.
+   */
+  preview?: React.ReactNode;
 }) {
   return (
     <Link
@@ -88,14 +89,7 @@ export function DashboardCard({
         {/* The real report, over the fallback, once the tile is on screen.
             Inert: pointer events stay with the card, which is the link. */}
         {preview ? (
-          <div className="pointer-events-none absolute inset-0">
-            <DashboardPreview
-              reportId={dashboard.id}
-              embedUrl={preview.embedUrl}
-              accessToken={preview.accessToken}
-              pageName={dashboard.pageName}
-            />
-          </div>
+          <div className="pointer-events-none absolute inset-0">{preview}</div>
         ) : null}
 
         {/* A wash and an "open" mark on hover, so the whole frame reads as the
@@ -108,7 +102,7 @@ export function DashboardCard({
         </div>
 
         <span className="absolute left-2.5 top-2.5 rounded-md bg-peak-950/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-peak-100">
-          {preview ? "Live" : "Preview"}
+          Preview
         </span>
       </div>
 

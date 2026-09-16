@@ -3,6 +3,7 @@ import { EmptyGallery } from "@/components/gallery/EmptyGallery";
 import { GalleryHeader } from "@/components/gallery/GalleryHeader";
 import {
   agentSlug,
+  FALLBACK_SUGGESTIONS,
   getPlatformAgents,
   PLATFORM_LABELS,
 } from "@/lib/ai-agent-store";
@@ -47,6 +48,10 @@ export default async function AiAgentsPage() {
             href: `/ai-agents/${agentSlug(agent)}`,
             name: agent.name,
             description: agent.description,
+            suggestions:
+              agent.suggestions.length > 0
+                ? agent.suggestions
+                : FALLBACK_SUGGESTIONS,
             eyebrow: PLATFORM_LABELS[agent.type] ?? agent.type,
             cta: agent.display === "chat-panel" ? "Ask" : "Open",
           }))}

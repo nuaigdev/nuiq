@@ -41,8 +41,11 @@ export default function DashboardPreviewEmbed({
   const [rendered, setRendered] = useState(false);
 
   return (
+    /* Opaque, and only once the report has actually rendered: a transparent
+       embed let the tile's artwork show through the report's own white space,
+       which read as two pictures on top of each other. */
     <div
-      className={`h-full w-full transition-opacity duration-500 ${
+      className={`h-full w-full bg-surface transition-opacity duration-300 ${
         rendered ? "opacity-100" : "opacity-0"
       }`}
     >
@@ -61,7 +64,7 @@ export default function DashboardPreviewEmbed({
               filters: { visible: false },
               pageNavigation: { visible: false },
             },
-            background: models.BackgroundType.Transparent,
+            background: models.BackgroundType.Default,
             layoutType: models.LayoutType.Custom,
             customLayout: { displayOption: models.DisplayOption.FitToPage },
           },

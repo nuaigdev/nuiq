@@ -4,7 +4,10 @@ import Link from "next/link";
 import { AgentGallery } from "@/components/gallery/AgentGallery";
 import { EmptyGallery } from "@/components/gallery/EmptyGallery";
 import { GalleryHeader, HEADER_ACTION_CLASS } from "@/components/gallery/GalleryHeader";
-import { getDataAgents } from "@/lib/data-agent-store";
+import {
+  FALLBACK_SUGGESTIONS,
+  getDataAgents,
+} from "@/lib/data-agent-store";
 import { getTenantConfig } from "@/lib/tenant-config";
 
 export const metadata = { title: "Conversational Data Agent" };
@@ -47,6 +50,10 @@ export default async function DataAgentsPage() {
             href: `/data-agents/${agent.id}`,
             name: agent.name,
             description: agent.description,
+            suggestions:
+              agent.suggestions.length > 0
+                ? agent.suggestions
+                : FALLBACK_SUGGESTIONS,
             cta: "Ask",
           }))}
           videos={[

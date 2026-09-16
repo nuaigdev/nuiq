@@ -29,7 +29,7 @@ const DashboardPreviewEmbed = dynamic(() => import("./DashboardPreviewEmbed"), {
 });
 
 /** How many previews may be starting up at once, across the whole gallery. */
-const MAX_CONCURRENT = 2;
+const MAX_CONCURRENT = 3;
 let active = 0;
 const waiting: (() => void)[] = [];
 
@@ -77,7 +77,9 @@ export function DashboardPreview(
         observer.disconnect();
         takeSlot(() => setShow(true));
       },
-      { rootMargin: "200px" },
+      /* Generous, so a tile just below the fold is already loading by the time
+         it is scrolled to. */
+      { rootMargin: "600px" },
     );
     observer.observe(node);
 

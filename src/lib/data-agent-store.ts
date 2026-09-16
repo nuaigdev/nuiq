@@ -52,8 +52,8 @@ export const dataAgentInputSchema = z.object({
         .filter(Boolean),
     )
     .refine(
-      (lines) => lines.length <= 4,
-      "Four suggested questions at most — more than that is a list, not a prompt.",
+      (lines) => lines.length <= 5,
+      "Five suggested questions at most — more than that is a list, not a prompt.",
     ),
 });
 
