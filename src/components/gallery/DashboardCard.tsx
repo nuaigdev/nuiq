@@ -101,9 +101,13 @@ export function DashboardCard({
           </span>
         </div>
 
-        <span className="absolute left-2.5 top-2.5 rounded-md bg-peak-950/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-peak-100">
-          Preview
-        </span>
+        {/* "Live", not "Preview": this is the report itself, not a picture of
+            it. The word only appears once a report is actually on the tile. */}
+        {preview ? (
+          <span className="absolute left-2.5 top-2.5 rounded-md bg-peak-950/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-peak-100">
+            Live
+          </span>
+        ) : null}
       </div>
 
       <div className="flex flex-1 items-start gap-3 px-2.5 pb-2 pt-4">

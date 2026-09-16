@@ -29,7 +29,7 @@ const DashboardPreviewEmbed = dynamic(() => import("./DashboardPreviewEmbed"), {
 });
 
 /** How many previews may be starting up at once, across the whole gallery. */
-const MAX_CONCURRENT = 3;
+const MAX_CONCURRENT = 4;
 let active = 0;
 const waiting: (() => void)[] = [];
 
@@ -77,9 +77,10 @@ export function DashboardPreview(
         observer.disconnect();
         takeSlot(() => setShow(true));
       },
-      /* Generous, so a tile just below the fold is already loading by the time
-         it is scrolled to. */
-      { rootMargin: "600px" },
+      /* Deliberately huge: on a gallery this size, waiting for a tile to come
+         into view buys nothing and costs the user the whole embed time when it
+         does. Every tile starts as soon as its turn comes up. */
+      { rootMargin: "4000px" },
     );
     observer.observe(node);
 

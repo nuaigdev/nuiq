@@ -65,6 +65,9 @@ export default function DashboardPreviewEmbed({
               pageNavigation: { visible: false },
             },
             background: models.BackgroundType.Default,
+            /* Nothing here is worth restoring later, and asking Power BI for a
+               user's persisted filters is a round trip before first paint. */
+            persistentFiltersEnabled: false,
             layoutType: models.LayoutType.Custom,
             customLayout: { displayOption: models.DisplayOption.FitToPage },
           },

@@ -22,21 +22,40 @@ export function PreviewWarmup() {
   useEffect(() => {
     let cancelled = false;
 
-    const warm = () => {
+    const warm = async () => {
       if (cancelled) return;
 
-      fetch("/api/dashboard-previews").catch(() => {});
       // Same module the tiles load with ssr:false, so this is a cache fill
       // rather than a second copy.
       import("./DashboardPreviewEmbed").catch(() => {});
+
+      try {
+        const response = await fetch("/api/dashboard-previews");
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as {
+          previews: { embedUrl: string }[];
+        };
+
+        // Pull each report's embed document into the browser cache. The tiles
+        // still mount the real embed; this just means the frame's own HTML and
+        // the TLS handshake are already paid for when they do.
+        for (const preview of body.previews.slice(0, 4)) {
+          fetch(preview.embedUrl, {
+            mode: "no-cors",
+            credentials: "omit",
+          }).catch(() => {});
+        }
+      } catch {
+        /* A head start, not a dependency. */
+      }
     };
 
     // Safari has no requestIdleCallback; a short timer is close enough. The
     // DOM types declare it as always present, hence the runtime check.
     const canIdle = typeof window.requestIdleCallback === "function";
     const handle = canIdle
-      ? window.requestIdleCallback(warm, { timeout: 4000 })
-      : window.setTimeout(warm, 1500);
+      ? window.requestIdleCallback(() => void warm(), { timeout: 2000 })
+      : window.setTimeout(() => void warm(), 800);
 
     return () => {
       cancelled = true;
