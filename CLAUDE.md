@@ -157,6 +157,8 @@ npm run typecheck                # tsc --noEmit
 
 npm run seed-config -- ./config/kestrelbrook/tenant.json   # seed the store
 npm run seed-config -- ./config/kestrelbrook/tenant.json --force
+
+npm run upload-gallery-videos    # agent gallery demo/launch videos (§5 Tab 3)
 ```
 
 The app will not start until its client config has been seeded and the store is
@@ -203,6 +205,7 @@ src/lib/ai-agent-store.ts        Tab 4 agents derived from config, slugs, labels
 src/lib/admin.ts                 who may administer this deployment (§6)
 src/app/(shell)/dashboards/manage/  admin add/remove screen, role-gated
 scripts/seed-config.ts           one-off seeding of a client's config document
+scripts/upload-gallery-videos.ts gallery demo/launch videos -> public store (§3b)
 ```
 
 ---
@@ -223,6 +226,20 @@ Accepted departures while on Vercel, all deliberate:
 - **No storage versioning.** Vercel Blob does not support it natively, and the
   demo does not need it. Revisit when a production client moves to Azure Blob,
   where container-level versioning would make a bad config edit recoverable.
+- **There are two Blob stores, and the split is deliberate.** The private one
+  (`BLOB_READ_WRITE_TOKEN`) holds the config document and the dashboard
+  thumbnails: they carry a client's own figures, so they are streamed through a
+  session-checked route and never served from a public URL. A second, public
+  store (`PUBLIC_BLOB_READ_WRITE_TOKEN`) holds only the agent gallery's demo and
+  launch videos, because the gallery renders those straight into `<video src>`
+  in the browser, which carries no credential — and a private store refuses
+  `access: "public"` outright, so one store could not do both. Only
+  `npm run upload-gallery-videos` needs the public token; the deployment never
+  does, since the config document ends up holding plain https URLs. **A video in
+  that store is readable by anyone with the link**, so check what is on screen
+  before putting a recording there — a demo taped against real data can show
+  resident-level detail, and this was an explicit decision taken for the demo
+  phase, not a general licence to publish client footage.
 - **`output: "standalone"` is disabled on Vercel** (`next.config.ts` keys off the
   `VERCEL` env var). Vercel runs its own file tracing and expects the normal
   build layout; with standalone output the build fails right at the end with
@@ -594,7 +611,11 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
   document — `{ url, title?, posterUrl? }`, where a direct file (.mp4, .webm)
   plays natively and any other URL is framed as an embed. Until a video is set
   its column shows a placeholder frame rather than collapsing, so the page keeps
-  its shape. The video columns stick under the header as a long agent list
+  its shape. Both tabs' videos are set: they live in the public Blob store and
+  are uploaded by `npm run upload-gallery-videos` (§3b), which also writes their
+  URLs into the config document, so replacing one needs no redeploy. `title` is
+  deliberately left unset — the slot headings the two pages already supply read
+  better than a filename. The video columns stick under the header as a long agent list
   scrolls. The conversation pages themselves are unchanged.
 
 ### Tab 4 — AI Agents (Foundry / Copilot)

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "seed-config": "dotenv -e .env.local -- tsx --conditions=react-server scripts/seed-config.ts"
+    "seed-config": "dotenv -e .env.local -- tsx --conditions=react-server scripts/seed-config.ts",
+    "upload-gallery-videos": "dotenv -e .env.local -- tsx --conditions=react-server scripts/upload-gallery-videos.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

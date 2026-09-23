@@ -14,3 +14,8 @@ data/
 
 .vercel
 .env*
+
+# Gallery video sources and the poster frames cut from them. Uploaded once to
+# the public Blob store by npm run upload-gallery-videos; never committed.
+*.mp4
+.video-posters/

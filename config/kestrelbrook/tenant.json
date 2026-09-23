@@ -43,8 +43,42 @@
       ],
       "endpoint": "https://coe-4207-resource.services.ai.azure.com/api/projects/coe-4207",
       "agentId": "AiFabric"
+    },
+    {
+      "type": "foundry",
+      "name": "Sales & Finance Agent",
+      "display": "chat-panel",
+      "description": "Ask questions about sales and finance in plain language. Built in Azure AI Foundry.",
+      "suggestions": [
+        "What can you help me with?",
+        "What information can you draw on?"
+      ],
+      "endpoint": "https://coe-4207-resource.services.ai.azure.com/api/projects/coe-4207",
+      "agentId": "SalesFinanceAgent"
     }
   ],
+  "videos": {
+    "dataAgents": {
+      "demo": {
+        "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/data-agents-demo.mp4",
+        "posterUrl": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/data-agents-demo-poster.jpg"
+      },
+      "launch": {
+        "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/data-agents-launch.mp4",
+        "posterUrl": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/data-agents-launch-poster.jpg"
+      }
+    },
+    "aiAgents": {
+      "demo": {
+        "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/ai-agents-demo.mp4",
+        "posterUrl": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/ai-agents-demo-poster.jpg"
+      },
+      "launch": {
+        "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/ai-agents-launch.mp4",
+        "posterUrl": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/ai-agents-launch-poster.jpg"
+      }
+    }
+  },
   "orgHierarchy": {
     "levels": [
       "organization",
