@@ -62,7 +62,7 @@ const items: Item[] = [
   {
     key: "dataAgents.demo",
     videoFile: "Conversational Agents Demo Video (Latest).mp4",
-    posterFile: ".video-posters/data-agents-demo-3.jpg",
+    posterFile: ".video-posters/ai-agents-demo-1.jpg",
     slug: "data-agents-demo",
   },
   {
@@ -74,7 +74,7 @@ const items: Item[] = [
   {
     key: "aiAgents.demo",
     videoFile: "Advanced AI Agents Demo Video (Latest).mp4",
-    posterFile: ".video-posters/ai-agents-demo-1.jpg",
+    posterFile: ".video-posters/data-agents-demo-3.jpg",
     slug: "ai-agents-demo",
   },
   {
