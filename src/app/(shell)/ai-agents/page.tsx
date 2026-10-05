@@ -56,20 +56,24 @@ export default async function AiAgentsPage() {
             cta: agent.display === "chat-panel" ? "Ask" : "Open",
           }))}
           videos={[
-            {
-              kind: "demo",
-              heading: "See the agents at work",
-              blurb:
-                "A short walkthrough of an agent taking on a real piece of work, from the first request to the result.",
-              video: videos.demo,
-            },
-            {
-              kind: "launch",
-              heading: "Introducing Advanced AI Agents",
-              blurb:
-                "What these agents are built to do, and where they go beyond questions of the warehouse.",
-              video: videos.launch,
-            },
+            [
+              {
+                kind: "demo",
+                heading: "See the agents at work",
+                blurb:
+                  "A short walkthrough of an agent taking on a real piece of work, from the first request to the result.",
+                video: videos.demo,
+              },
+            ],
+            [
+              {
+                kind: "launch",
+                heading: "Introducing Advanced AI Agents",
+                blurb:
+                  "What these agents are built to do, and where they go beyond questions of the warehouse.",
+                video: videos.launch,
+              },
+            ],
           ]}
         />
       )}

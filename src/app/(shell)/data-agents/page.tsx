@@ -57,20 +57,31 @@ export default async function DataAgentsPage() {
             cta: "Ask",
           }))}
           videos={[
-            {
-              kind: "demo",
-              heading: "See a data agent answer",
-              blurb:
-                "A short walkthrough: asking a question, reading the answer, and checking the query behind it.",
-              video: videos.demo,
-            },
-            {
-              kind: "launch",
-              heading: "Introducing the data agents",
-              blurb:
-                "What these agents are for, what they can see, and how they fit alongside your dashboards.",
-              video: videos.launch,
-            },
+            videos.demos.length > 0
+              ? videos.demos.map((video) => ({
+                  kind: "demo" as const,
+                  heading: "See a data agent answer",
+                  blurb:
+                    "A short walkthrough: asking a question, reading the answer, and checking the query behind it.",
+                  video,
+                }))
+              : [
+                  {
+                    kind: "demo" as const,
+                    heading: "See a data agent answer",
+                    blurb:
+                      "A short walkthrough: asking a question, reading the answer, and checking the query behind it.",
+                  },
+                ],
+            [
+              {
+                kind: "launch" as const,
+                heading: "Introducing the data agents",
+                blurb:
+                  "What these agents are for, what they can see, and how they fit alongside your dashboards.",
+                video: videos.launch,
+              },
+            ],
           ]}
         />
       )}

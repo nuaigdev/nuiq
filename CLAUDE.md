@@ -604,12 +604,14 @@ Purpose: let a user ask questions in natural language of the warehouse itself, t
 - Where the agent returns the SQL or the tables it consulted, surface that as inspectable detail alongside the answer. Users acting on a census or falls number need to see where it came from; an unexplained number in this domain is worse than no number.
 - Conversation state is per-user and per-session, held in browser component state and never persisted. Each `tools/call` is independent, so prior turns are not carried — do not add server-side transcript storage without an explicit decision (see the PHI note under Tab 4, which applies here too).
 - **Agents are added and removed from `/data-agents/manage`**, gated on `ADMIN_EMAILS` and enforced server-side, exactly as dashboards are. The list lives in the client's config document, so a new agent appears without a redeploy.
-- **The gallery is three columns: agents, a demo video, a launch video.** The
-  first column lists every agent, each opening its own conversation; agents can
-  be many. The videos are **one each per page, not per agent**, read from
-  `videos.dataAgents` (Tab 3) and `videos.aiAgents` (Tab 4) in the config
-  document — `{ url, title?, posterUrl? }`, where a direct file (.mp4, .webm)
-  plays natively and any other URL is framed as an embed. Until a video is set
+- **The gallery is an agent column, then video columns.** The first column lists
+  every agent, each opening its own conversation; agents can be many. Tab 3's
+  demo column holds **one demo per data agent**, stacked, each titled with its
+  agent — read from `videos.dataAgents.demos[]` — with one launch video for the
+  page in `videos.dataAgents.launch`. Tab 4 keeps **one demo and one launch for
+  the page**, in `videos.aiAgents.demo` / `.launch`. Each video is
+  `{ url, title?, posterUrl? }`, where a direct file (.mp4, .webm) plays natively
+  and any other URL is framed as an embed. Until a video is set
   its column shows a placeholder frame rather than collapsing, so the page keeps
   its shape. Both tabs' videos are set: they live in the public Blob store and
   are uploaded by `npm run upload-gallery-videos` (§3b), which also writes their

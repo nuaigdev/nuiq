@@ -7,15 +7,14 @@ import { GalleryArt, type ArtScene } from "./GalleryArt";
 import { CARD, CHIP, FRAME } from "./gallery-styles";
 
 /**
- * The body of both agent tabs (§5 Tabs 3 and 4): three columns of one card.
+ * The body of both agent tabs (§5 Tabs 3 and 4): an agent column, then one or
+ * more video columns. Each video column is a stack of cards.
  *
  *   1. every agent this deployment has, each opening its own conversation;
- *   2. one demo video for the page;
- *   3. one launch video for the page.
+ *   2+. the video columns, one stack of cards each.
  *
- * Agents can be many; the videos are one each per page, not per agent. Every
- * card is the same object (see gallery-styles), and each is only as tall as its
- * own content — adding a third agent must not stretch the video cards.
+ * Every card is the same object (see gallery-styles), and each is only as tall
+ * as its own content — adding a third agent must not stretch the video cards.
  *
  * Videos come from the client's config (`videos.dataAgents` / `videos.aiAgents`).
  * Until one is set, its card keeps its picture and says the video is coming,
@@ -37,7 +36,7 @@ export function AgentGallery({
   listLabel,
 }: {
   agents: GalleryAgent[];
-  videos: [VideoSlot, VideoSlot];
+  videos: VideoSlot[][];
   listLabel: string;
 }) {
   return (
@@ -48,8 +47,12 @@ export function AgentGallery({
         ))}
       </section>
 
-      {videos.map((slot) => (
-        <VideoCard key={slot.kind} slot={slot} />
+      {videos.map((column, i) => (
+        <div key={i} className="flex flex-col gap-6">
+          {column.map((slot, j) => (
+            <VideoCard key={`${slot.kind}-${j}`} slot={slot} />
+          ))}
+        </div>
       ))}
     </div>
   );

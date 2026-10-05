@@ -103,9 +103,18 @@ const galleryVideoSchema = z.object({
   posterUrl: z.string().url().optional(),
 });
 
-/** One demo and one launch video per agent tab — per page, not per agent. */
+/** Advanced AI Agents: one demo and one launch video for the page. */
 const galleryVideosSchema = z.object({
   demo: galleryVideoSchema.optional(),
+  launch: galleryVideoSchema.optional(),
+});
+
+/**
+ * Conversational Data Agents: one demo per data agent, stacked in the demo
+ * column (each titled with its agent), and one launch video for the page.
+ */
+const dataAgentVideosSchema = z.object({
+  demos: z.array(galleryVideoSchema).default([]),
   launch: galleryVideoSchema.optional(),
 });
 
@@ -124,10 +133,10 @@ const tenantConfigSchema = z.object({
   agents: z.array(agentSchema).default([]),
   videos: z
     .object({
-      dataAgents: galleryVideosSchema.default({}),
+      dataAgents: dataAgentVideosSchema.default({ demos: [] }),
       aiAgents: galleryVideosSchema.default({}),
     })
-    .default({ dataAgents: {}, aiAgents: {} }),
+    .default({ dataAgents: { demos: [] }, aiAgents: {} }),
   orgHierarchy: z.object({
     levels: z.array(z.string().min(1)).min(1),
   }),
