@@ -55,9 +55,9 @@ export default async function DashboardsPage() {
           actionLabel="Add a dashboard"
         />
       ) : (
-        <ul className="mx-auto flex max-w-[1600px] flex-col gap-6 px-6 py-8">
+        <ul className="mx-auto flex max-w-[920px] flex-col gap-6 px-6 py-8">
           {dashboards.map((dashboard) => (
-            <li key={dashboard.id} className="grid gap-6 sm:grid-cols-2">
+            <li key={dashboard.id} className="grid gap-5 sm:grid-cols-2">
               <DashboardCard dashboard={dashboard} />
               <DashboardVideoTile video={matchVideo(dashboard, videos)} />
             </li>
