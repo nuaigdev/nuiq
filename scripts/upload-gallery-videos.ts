@@ -79,30 +79,35 @@ const dataAgentDemos: Item[] = [
   },
 ];
 
+/**
+ * `title` is deliberately the dashboard's own name in `tenant.json`, not a
+ * short label — the dashboards page pairs a video to its tile by matching
+ * this title against `powerBi.reports[].name`, so the two must agree exactly.
+ */
 const dashboardVideos: Item[] = [
   {
     key: "dashboards.financial",
     videoFile: "Finance Dashboard Final Video.mp4",
     slug: "dashboards-finance",
-    title: "Finance",
+    title: "Finance Dashboard",
   },
   {
     key: "dashboards.hr",
     videoFile: "HR Dashboard Final Video.mp4",
     slug: "dashboards-hr",
-    title: "HR",
+    title: "Human Resource Dashboard",
   },
   {
     key: "dashboards.salesMarketing",
     videoFile: "Sales & Marketing Dashboard Final Video.mp4",
     slug: "dashboards-sales-marketing",
-    title: "Sales & Marketing",
+    title: "Marketing & Sales Dashboard",
   },
   {
     key: "dashboards.skilledNursing",
     videoFile: "Skilled Nursing Dashboard Final Video.mp4",
     slug: "dashboards-skilled-nursing",
-    title: "Skilled Nursing",
+    title: "Skilled Nursing Dashboard",
   },
 ];
 

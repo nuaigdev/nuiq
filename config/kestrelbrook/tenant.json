@@ -61,19 +61,19 @@
     "dashboards": [
       {
         "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/dashboards-finance.mp4",
-        "title": "Finance"
+        "title": "Finance Dashboard"
       },
       {
         "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/dashboards-hr.mp4",
-        "title": "HR"
+        "title": "Human Resource Dashboard"
       },
       {
         "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/dashboards-sales-marketing.mp4",
-        "title": "Sales & Marketing"
+        "title": "Marketing & Sales Dashboard"
       },
       {
         "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/dashboards-skilled-nursing.mp4",
-        "title": "Skilled Nursing"
+        "title": "Skilled Nursing Dashboard"
       }
     ],
     "dataAgents": {

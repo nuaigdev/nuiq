@@ -4,8 +4,7 @@ import Link from "next/link";
 import { DashboardCard } from "@/components/gallery/DashboardCard";
 import { EmptyGallery } from "@/components/gallery/EmptyGallery";
 import { GalleryHeader, HEADER_ACTION_CLASS } from "@/components/gallery/GalleryHeader";
-import { CARD, CHIP, FRAME } from "@/components/gallery/gallery-styles";
-import { getDashboards } from "@/lib/dashboard-store";
+import { getDashboards, type Dashboard } from "@/lib/dashboard-store";
 import { getTenantConfig, type GalleryVideo } from "@/lib/tenant-config";
 
 export const metadata = { title: "Power BI Dashboards" };
@@ -19,6 +18,11 @@ export const metadata = { title: "Power BI Dashboards" };
  * worth it for a picture somebody looks at for a second before clicking
  * through. The image is supplied per dashboard instead (`thumbnailUrl`), and
  * opening a card still loads the real, interactive report.
+ *
+ * A dashboard that also has a walkthrough video (`videos.dashboards`) is paired
+ * with it, tile and video side by side at the same size — matched by the
+ * video's `title` against the dashboard's own name, not by a hardcoded id, so
+ * this keeps working if dashboards are reordered or a new one is added.
  */
 export default async function DashboardsPage() {
   const config = await getTenantConfig();
@@ -51,66 +55,77 @@ export default async function DashboardsPage() {
           actionLabel="Add a dashboard"
         />
       ) : (
-        <div className="mx-auto grid max-w-[1600px] items-start gap-6 px-6 py-8 md:grid-cols-2">
-          <ul className="grid gap-6 self-start sm:grid-cols-2">
-            {dashboards.map((dashboard) => (
-              <li key={dashboard.id}>
-                <DashboardCard dashboard={dashboard} />
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex flex-col gap-6">
-            {videos.map((video, i) => (
-              <DashboardVideoCard key={video.title ?? i} video={video} />
-            ))}
-          </div>
-        </div>
+        <ul className="mx-auto flex max-w-[1600px] flex-col gap-6 px-6 py-8">
+          {dashboards.map((dashboard) => (
+            <li key={dashboard.id} className="grid gap-6 sm:grid-cols-2">
+              <DashboardCard dashboard={dashboard} />
+              <DashboardVideoTile video={matchVideo(dashboard, videos)} />
+            </li>
+          ))}
+        </ul>
       )}
     </>
   );
 }
 
+/** Matches a dashboard video to its tile by name, not by a hardcoded id. */
+function matchVideo(dashboard: Dashboard, videos: GalleryVideo[]): GalleryVideo | undefined {
+  const name = dashboard.name.trim().toLowerCase();
+  return videos.find((video) => video.title?.trim().toLowerCase() === name);
+}
+
 const DIRECT_FILE = /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i;
 
-function DashboardVideoCard({ video }: { video: GalleryVideo }) {
+/**
+ * Same shape and size as `DashboardCard` — a 16:10 frame in a rounded-2xl card
+ * with the same padding — so the pair reads as one row, not a tile beside an
+ * oversized video.
+ */
+function DashboardVideoTile({ video }: { video: GalleryVideo | undefined }) {
   return (
-    <section aria-label={video.title ?? "Dashboard video"} className={CARD}>
-      <div className={FRAME}>
-        {DIRECT_FILE.test(video.url) ? (
-          <video
-            src={video.url}
-            poster={video.posterUrl}
-            controls
-            preload="metadata"
-            playsInline
-            className="h-full w-full bg-peak-950"
-          >
-            <track kind="captions" />
-          </video>
+    <div className="card flex h-full flex-col rounded-2xl p-2.5">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-canvas-line bg-peak-950">
+        {video ? (
+          DIRECT_FILE.test(video.url) ? (
+            <video
+              src={video.url}
+              poster={video.posterUrl}
+              controls
+              preload="metadata"
+              playsInline
+              className="h-full w-full object-contain"
+            >
+              <track kind="captions" />
+            </video>
+          ) : (
+            <iframe
+              src={video.url}
+              title={video.title ?? "Dashboard video"}
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+              className="h-full w-full"
+            />
+          )
         ) : (
-          <iframe
-            src={video.url}
-            title={video.title ?? "Dashboard video"}
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="strict-origin-when-cross-origin"
-            className="h-full w-full bg-peak-950"
-          />
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="text-[12.5px] font-medium text-peak-200">Video coming soon</span>
+          </div>
         )}
-        <span className={CHIP}>Demo</span>
       </div>
 
-      <div className="flex flex-col px-3 pb-3 pt-4">
-        <p className="mb-1.5 inline-flex items-center gap-2 text-[11.5px] font-medium text-peak-600">
-          <Film aria-hidden className="h-4 w-4" />
-          Dashboard walkthrough
-        </p>
-        <h3 className="text-[16px] font-semibold leading-snug tracking-[-0.01em] text-ink">
-          {video.title ?? "Dashboard video"}
-        </h3>
+      <div className="flex flex-1 items-start gap-3 px-2.5 pb-2 pt-4">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-canvas-line bg-surface">
+          <Film aria-hidden className="h-4 w-4 text-peak-600" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold leading-snug text-ink">Walkthrough</h2>
+          <p className="mt-1 text-[12px] text-ink-subtle">
+            {video ? "See this dashboard in action" : "Not yet recorded"}
+          </p>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
