@@ -133,10 +133,11 @@ const tenantConfigSchema = z.object({
   agents: z.array(agentSchema).default([]),
   videos: z
     .object({
+      dashboards: z.array(galleryVideoSchema).default([]),
       dataAgents: dataAgentVideosSchema.default({ demos: [] }),
       aiAgents: galleryVideosSchema.default({}),
     })
-    .default({ dataAgents: { demos: [] }, aiAgents: {} }),
+    .default({ dashboards: [], dataAgents: { demos: [] }, aiAgents: {} }),
   orgHierarchy: z.object({
     levels: z.array(z.string().min(1)).min(1),
   }),

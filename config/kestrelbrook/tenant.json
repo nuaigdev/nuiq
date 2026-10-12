@@ -58,6 +58,24 @@
     }
   ],
   "videos": {
+    "dashboards": [
+      {
+        "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/dashboards-finance.mp4",
+        "title": "Finance"
+      },
+      {
+        "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/dashboards-hr.mp4",
+        "title": "HR"
+      },
+      {
+        "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/dashboards-sales-marketing.mp4",
+        "title": "Sales & Marketing"
+      },
+      {
+        "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/dashboards-skilled-nursing.mp4",
+        "title": "Skilled Nursing"
+      }
+    ],
     "dataAgents": {
       "demo": {
         "url": "https://yrsv0hzsmu2hfw8l.public.blob.vercel-storage.com/clients/kestrelbrook/gallery-videos/data-agents-demo.mp4",

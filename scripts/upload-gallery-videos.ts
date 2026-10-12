@@ -79,7 +79,35 @@ const dataAgentDemos: Item[] = [
   },
 ];
 
+const dashboardVideos: Item[] = [
+  {
+    key: "dashboards.financial",
+    videoFile: "Finance Dashboard Final Video.mp4",
+    slug: "dashboards-finance",
+    title: "Finance",
+  },
+  {
+    key: "dashboards.hr",
+    videoFile: "HR Dashboard Final Video.mp4",
+    slug: "dashboards-hr",
+    title: "HR",
+  },
+  {
+    key: "dashboards.salesMarketing",
+    videoFile: "Sales & Marketing Dashboard Final Video.mp4",
+    slug: "dashboards-sales-marketing",
+    title: "Sales & Marketing",
+  },
+  {
+    key: "dashboards.skilledNursing",
+    videoFile: "Skilled Nursing Dashboard Final Video.mp4",
+    slug: "dashboards-skilled-nursing",
+    title: "Skilled Nursing",
+  },
+];
+
 const items: Item[] = [
+  ...dashboardVideos,
   ...dataAgentDemos,
   {
     key: "dataAgents.launch",
@@ -173,6 +201,7 @@ async function main() {
   const updated: TenantConfig = {
     ...config,
     videos: {
+      dashboards: dashboardVideos.map((item) => pick(item.key)),
       dataAgents: {
         demos: dataAgentDemos.map((item) => pick(item.key)),
         launch: pick("dataAgents.launch"),
